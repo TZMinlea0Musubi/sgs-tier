@@ -1,0 +1,3394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三国杀DIY梯度榜 · Wiki评级（v10.1）</title>
+<style>
+  :root{
+    --bg:#14161a; --panel:#1c1f26; --panel2:#21252e; --border:#2a2e37; --border-strong:#3a404c;
+    --text:#e8eaef; --muted:#9aa3b2; --link:#6ea8fe;
+    /* accent＝危险/风险/强强调（仅此语义）；info＝结构与信息提示（说明、结论、分隔） */
+    --accent:#e05c4a; --accent-soft:#e05c4a1f;
+    --info:#4fb3a8; --info-soft:#4fb3a81c; --info-line:#4fb3a866;
+    --r-lg:12px; --r-md:10px; --r-sm:8px;
+    --t0:#ff6b6b; --t1:#ffa04d; --t2:#5b9bd8; --t3:#98a2b3; --t4:#5cb8b3; --t5:#4caf7d;
+    --undecided:#b18ae0; --unrated:#8a93a3;
+    --ok:#4CAF7D; --warn:#e8a33d;
+    --thumb:#17191f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;font-size:14px;line-height:1.65;}
+  a{color:var(--link);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  code{background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:0 5px;font-size:12px;font-family:Consolas,Monaco,monospace;}
+
+  /* ===== 顶栏 ===== */
+  .topbar{position:sticky;top:0;z-index:50;background:#14161aee;backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+  .topbar-inner{max-width:1280px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:8px 18px;}
+  .brand{font-size:17px;white-space:nowrap;}
+  .brand b{font-weight:800;}
+  /* 构建时间：只用来判断「你手里这份是不是最新的」，不参与任何计算 */
+  .brand .build{font-size:11px;font-weight:400;color:var(--muted);opacity:.55;margin-left:7px;letter-spacing:.02em;}
+  .ver{display:inline-block;margin-left:8px;font-size:11px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:0 6px;transform:translateY(-1px);}
+  #search{flex:1;max-width:420px;border:1px solid var(--border-strong);border-radius:8px;padding:7px 12px;font-size:13px;background:var(--panel);color:var(--text);outline:none;}
+  #search:focus{border-color:var(--link);background:var(--panel2);}
+  #search::placeholder{color:var(--muted);}
+  .algo-btn{border:1px solid var(--border-strong);background:var(--panel);color:var(--text);border-radius:8px;padding:4px 12px;font-size:12.5px;cursor:pointer;white-space:nowrap;}
+  .algo-btn:hover{background:var(--panel2);border-color:var(--link);color:var(--link);}
+  .doc-links{margin-left:auto;display:flex;gap:8px;font-size:13px;white-space:nowrap;}
+  .doc-links button{border:1px solid var(--border-strong);background:var(--panel);color:var(--text);border-radius:8px;padding:4px 12px;font-size:12.5px;cursor:pointer;}
+  .doc-links button:hover{background:var(--panel2);border-color:var(--link);color:var(--link);}
+  .share-btn{margin-left:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:8px;padding:4px 12px;font-size:12.5px;cursor:pointer;white-space:nowrap;}
+  .share-btn:hover{background:var(--accent);color:#fff;}
+
+  .layout{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:210px 1fr;gap:18px;padding:18px;align-items:start;}
+
+  /* ===== 侧栏 ===== */
+  .sidebar{position:sticky;top:62px;display:flex;flex-direction:column;gap:12px;}
+  .side-block{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+  .side-title{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:8px;}
+  .tier-nav{list-style:none;display:flex;flex-direction:column;gap:2px;}
+  .tier-nav a{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;color:var(--text);font-size:13px;}
+  .tier-nav a:hover{background:var(--panel2);text-decoration:none;}
+  .dot{width:9px;height:9px;border-radius:3px;flex:none;}
+  .cnt{margin-left:auto;font-size:12px;color:var(--muted);}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;}
+  .chip{border:1px solid var(--border-strong);border-radius:999px;padding:2px 10px;font-size:12px;cursor:pointer;background:var(--panel);color:var(--text);user-select:none;}
+  .chip:hover{border-color:var(--link);}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .side-block.small{font-size:12px;color:var(--muted);}
+  .side-block.small p{line-height:1.7;}
+  .side-block.small .side-risk{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:11.5px;}
+
+  /* ===== 主区 / 档位区 ===== */
+  .tier-sec{margin-bottom:26px;scroll-margin-top:72px;}
+  .tier-head{display:flex;align-items:baseline;gap:10px;border-bottom:2px solid var(--border);padding-bottom:7px;margin-bottom:12px;}
+  .tier-head h2{font-size:19px;font-weight:800;}
+  .tier-head .n{font-size:13px;color:var(--muted);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:12px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s;display:flex;flex-direction:column;}
+  .card:hover{transform:translateY(-3px);box-shadow:0 10px 26px #00000066;border-color:var(--border-strong);}
+  /* 卡片左上角的「设计者」标识：一屏扫过去就知道这张是谁设计的。
+     统一黑底、不按人分色——颜色只用来区分人，容易被误读成强弱，故一律同款。 */
+  .card .thumb{position:relative;height:178px;background:var(--thumb);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .au-badge{position:absolute;left:6px;top:6px;z-index:2;font-size:10.5px;font-weight:800;line-height:1.5;
+    padding:5px 4px;border-radius:5px;color:#e7eaef;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.16);
+    letter-spacing:.04em;box-shadow:0 1px 4px #0008;pointer-events:none;
+    writing-mode:vertical-rl;max-height:calc(100% - 12px);overflow:hidden;}
+  /* 没出图的卡：占位块（图来了 rebuild 自动替换，不需要改模板） */
+  .thumb-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    background:repeating-linear-gradient(45deg,#1b1e24,#1b1e24 8px,#20242b 8px,#20242b 16px);
+    color:#6b7280;font-size:12px;font-weight:700;}
+  .card .thumb img{max-width:100%;max-height:100%;object-fit:contain;}
+  .card .body{padding:10px 12px 11px;display:flex;flex-direction:column;gap:5px;border-top:1px solid var(--border);}
+  /* 筛「边界卡」时整列表只解释一次，不再每张卡重复同一句 */
+  .grid-note{margin-top:9px;font-size:11.5px;color:var(--muted);line-height:1.7;}
+  .card .nm{font-weight:700;font-size:14px;line-height:1.35;letter-spacing:.01em;}
+  .card .meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .badge{display:inline-block;font-size:11px;font-weight:700;color:#fff;padding:1px 8px;border-radius:999px;}
+  .badge.t0{background:var(--t0);} .badge.t1{background:var(--t1);} .badge.t2{background:var(--t2);} .badge.t3{background:var(--t3);}
+  .badge.t4{background:var(--t4);} .badge.t5{background:var(--t5);}
+  .badge.undecided{background:var(--undecided);} .badge.unrated{background:var(--unrated);}
+  .badge.stale{background:#c2410c;}
+  .badge.unc{background:#e8a33d26;color:#f0bd6a;border:1px solid #e8a33d66;font-weight:700;}
+  /* ===== 分数稳定性（区间传播） ===== */
+  /* 网格小卡：筛「边界卡」时在卡名下方补一条概率彩条（不筛选时不占版面） */
+  .minibar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--panel2);border:1px solid var(--border);margin:5px 0 7px;}
+  .minibar span{display:block;height:100%;}
+  .unc-line{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12.5px;color:#c6cdd8;line-height:1.9;}
+  .unc-line .num{font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;}
+  /* 推导算式：等宽数值 + 下边距，和下面的区间/彩条分开读 */
+  .unc-line.derive{margin-bottom:2px;padding-bottom:6px;border-bottom:1px dashed var(--border);font-size:12.5px;}
+  .unc-line.derive b{color:#9ad7d2;}
+  .unc-line.derive .stp{display:inline-block;max-width:100%;}
+  .unc-line .ar{color:#5d6577;font-size:11px;}
+  .unc-line .tt{margin-left:4px;font-weight:800;color:#c6cdd8;padding:1px 8px;border-radius:6px;background:#ffffff12;}
+  .unc-line .ci-lb{color:#c6cdd8;}
+  .unc-line .ci-w{font-size:11px;color:var(--muted);}
+  .unc-line.mgn{border-top:1px dashed var(--border);margin-top:4px;padding-top:6px;}
+  .unc-line.mgn b{color:#c9b6f5;}
+  .unc-bar{display:flex;height:20px;border-radius:7px;overflow:hidden;border:1px solid var(--border);background:var(--panel2);margin:12px 0 8px;}
+  /* 彩条现在排在面板第一位（推导链已折叠），贴顶时不要双倍留白 */
+  .unc-bar:first-child{margin-top:0;}
+  .unc-seg{display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:800;color:#0d0f12;overflow:hidden;white-space:nowrap;}
+  .unc-seg b{font-weight:900;letter-spacing:.02em;}
+  .unc-seg i{font-style:normal;font-weight:900;font-size:14px;line-height:1;opacity:.85;}
+  .unc-note{font-size:11.5px;color:var(--muted);line-height:1.75;}
+  /* 结论时效提示：护甲/技能变更后须重跑，旧分只作参考 */
+  .stale-box{background:#c2410c22;border:1px solid #c2410c66;border-left:4px solid #f97316;border-radius:0 8px 8px 0;padding:9px 14px;font-size:13px;line-height:1.7;margin:-6px 0 16px;color:var(--text);}
+  .stale-box b{color:#fb923c;}
+  .hp{font-size:11px;color:var(--muted);}
+  .card .why{font-size:12px;color:var(--muted);line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .empty-tip{padding:26px;text-align:center;color:var(--muted);font-size:13px;display:none;}
+  /* ---------- 排序 / 排行榜 ---------- */
+  .sort-dirbtn{margin-top:9px;width:100%;font-size:12px;border:1px solid var(--border-strong);background:var(--panel);color:var(--muted);border-radius:8px;padding:4px 10px;cursor:pointer;}
+  .sort-dirbtn:hover{color:var(--text);border-color:var(--link);}
+  .rank-panel{margin-bottom:26px;}
+  .rank-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:2px solid var(--border);padding-bottom:8px;margin-bottom:12px;}
+  .rank-head h3{font-size:19px;font-weight:800;}
+  .rank-head .sub{font-size:12.5px;color:var(--muted);}
+  .rank-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
+  .rank-row{display:grid;grid-template-columns:36px 44px minmax(0,1fr) auto auto 120px 52px;align-items:center;gap:10px;
+    background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:6px 12px 6px 4px;cursor:pointer;transition:border-color .12s,transform .12s;}
+  .rank-row:hover{border-color:var(--border-strong);transform:translateX(3px);}
+  .rank-row .rk{font-size:15px;font-weight:800;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums;}
+  .rank-row.top1 .rk{color:#f5c451;} .rank-row.top2 .rk{color:#cfd6e2;} .rank-row.top3 .rk{color:#cd8b52;}
+  .rank-row .thumb2{width:44px;height:54px;border-radius:6px;overflow:hidden;background:var(--thumb);display:flex;align-items:center;justify-content:center;}
+  .rank-row .thumb2 img{max-width:100%;max-height:100%;object-fit:contain;}
+  .rank-row .rk-name{font-weight:700;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+  .rank-row .rk-fac{font-weight:400;font-size:11px;color:var(--muted);margin-left:6px;}
+  .rank-row .rk-au{font-size:10px;font-weight:800;color:#e7eaef;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.16);padding:1px 5px;border-radius:4px;margin-left:6px;}
+  .rk-bar{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden;display:block;}
+  .rk-bar .fill{display:block;height:100%;background:var(--accent);border-radius:4px;}
+  .rk-val{font-size:12.5px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;}
+  .rank-note{margin-top:10px;font-size:12px;color:var(--muted);line-height:1.6;}
+  @media (max-width:900px){
+    .rank-row{grid-template-columns:30px 40px minmax(0,1fr) auto;gap:8px;}
+    .rk-bar,.rk-val{display:none;}
+    /* 池分析窄屏：副标题收起、表格允许横向滚动 */
+    .pv-sub{display:none;}
+    .pv-body{padding:16px 12px 70px;}
+    .pv-card{overflow-x:auto;}
+    .pv-drow{grid-template-columns:86px 1fr 78px;}
+    .pv-axis{grid-template-columns:44px 1fr 104px;}
+  }
+
+  /* ===== 详情页（wiki 档案） ===== */
+  .detail{position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto;display:none;}
+  .detail.show{display:block;}
+  .d-topbar{position:sticky;top:0;z-index:10;background:#14161aee;backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+  .d-topbar-inner{max-width:1180px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:10px 20px;}
+  .backbtn{border:1px solid var(--border-strong);background:var(--panel);border-radius:8px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--text);}
+  .backbtn:hover{background:var(--panel2);}
+  .crumb{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pagenav{margin-left:auto;display:flex;gap:8px;}
+  .pagenav button{border:1px solid var(--border-strong);background:var(--panel);border-radius:8px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--text);}
+  .pagenav button:hover:not(:disabled){background:var(--panel2);}
+  .pagenav button:disabled{opacity:.35;cursor:default;}
+
+  .article{max-width:1200px;margin:0 auto;padding:16px 20px 44px;display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start;}
+  /* 左栏现在是「卡面 + 技能原文 + 歧义判定」三段，比视口还高：
+     再吸顶会让底部那段永远被挡在视口外，所以整列改为常规文档流。 */
+  .fig{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .fig img{width:100%;max-height:42vh;object-fit:contain;display:block;background:var(--thumb);cursor:zoom-in;}
+  .figskills{border-top:1px solid var(--border);padding:8px 10px 10px;}
+  /* 描述歧义并入左栏：卡面 / 技能原文 / 歧义判定同属「这张卡本身」，用分隔线分三段，不再套一层卡片 */
+  .amb-block{border-top:1px solid var(--border);padding:10px 10px 11px;}
+  .amb-block .p-hd{margin-bottom:7px;padding-bottom:0;border-bottom:none;gap:7px;}
+  .amb-block .p-hd h3{font-size:12.5px;letter-spacing:.02em;color:#aab3c0;}
+  .amb-block .p-tag{font-size:10.5px;}
+  .amb-block .amb{font-size:11.5px;line-height:1.68;padding:8px 9px;gap:7px;}
+  .amb-block .amb-note{font-size:11px;line-height:1.66;margin-top:7px;padding:7px 9px;}
+  .fs-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .fs-head button{border:1px solid var(--border-strong);background:var(--panel2);color:var(--text);border-radius:6px;padding:2px 10px;font-size:12px;cursor:pointer;}
+  .fs-head button:hover{border-color:var(--link);color:var(--link);}
+  .fs-body{max-height:44vh;overflow:auto;font-size:12.5px;line-height:1.75;}
+  .fs-item{margin-bottom:9px;padding:8px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:7px;user-select:text;}
+  .fs-item b{color:var(--text);}
+  .fs-name{font-weight:800;font-size:13px;color:var(--text);margin-bottom:3px;}
+  .fs-cat{font-size:11.5px;color:var(--accent);margin-bottom:5px;}
+  .fs-desc{font-size:12.5px;line-height:1.85;color:#c6cdd8;white-space:pre-wrap;word-break:break-word;}
+  .dnote{font-size:12px;color:var(--muted);line-height:1.7;background:var(--panel2);border:1px dashed var(--border-strong);border-radius:8px;padding:8px 10px;margin-bottom:10px;}
+  .dsecond{margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);}
+  .dbar .lb .sub{font-size:10.5px;color:var(--muted);font-weight:400;}
+  .fig .cap{padding:9px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);text-align:center;}
+
+  .a-head{display:flex;flex-direction:column;gap:7px;margin-bottom:11px;}
+  .a-head h1{font-size:24px;font-weight:800;line-height:1.2;letter-spacing:.01em;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  /* 称号与角色名同一行：名字是主体，称号是后缀，小一号、拉开字距当装饰 */
+  .a-title{font-size:12.5px;color:var(--muted);letter-spacing:.1em;font-weight:600;white-space:nowrap;}
+  .a-foot{margin-top:4px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.7;}
+  .a-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);}
+  .a-meta .score{display:inline-flex;align-items:baseline;gap:2px;font-weight:800;color:var(--accent);
+    font-size:25px;line-height:1;letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-right:2px;}
+  .a-meta .score .den{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:1px;}
+  .a-meta .seg2{font-style:normal;font-size:11px;font-weight:600;margin-left:7px;color:var(--muted);letter-spacing:0;}
+  /* 分数是这一页的主数据，用一条细竖线把它和设计者/阵营/血量这些附带信息隔开 */
+  .a-meta .meta-sep{display:inline-block;width:1px;height:13px;background:var(--border-strong);margin:0 3px;}
+  /* 档内段位：卡片上只占一个字，详情页给出档内百分比 */
+  .hp .seg{font-style:normal;font-size:10px;margin-left:3px;color:var(--accent);opacity:.85;}
+  .a-meta .au-inline{font-size:11.5px;font-weight:700;color:#e7eaef;background:#ffffff12;border:1px solid #ffffff1f;padding:2px 9px;border-radius:999px;}
+  .a-meta .meta-pill{font-size:11.5px;color:#b9c2cf;background:#ffffff0d;border:1px solid var(--border);padding:2px 9px;border-radius:999px;}
+  .fig-ph{width:100%;aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    background:repeating-linear-gradient(45deg,#1b1e24,#1b1e24 8px,#20242b 8px,#20242b 16px);color:#6b7280;font-size:13px;font-weight:700;}
+  /* 评级理由＝信息，不是警告：改用青绿结构色，红色只留给真正的风险 */
+  .why-box{background:var(--info-soft);border:1px solid var(--info-line);border-left:3px solid var(--info);
+    border-radius:var(--r-sm);padding:10px 13px;font-size:13px;line-height:1.7;color:#dfe6ea;margin-bottom:10px;}
+  .why-box b{color:var(--info);font-weight:700;}
+
+  /* 面板：统一节奏——标题 14/800 + 标题下分隔线，内容不再另加竖条 */
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-md);padding:14px 16px;margin-bottom:8px;}
+  /* 竖向节奏：同一话题内 8px，换话题（能力维度）前多给 10px，读者能看出分段 */
+  .panel.sec{margin-top:10px;}
+  .panel + details{margin-top:10px;}
+  .panel h3{font-size:14px;font-weight:800;margin-bottom:9px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding-bottom:7px;border-bottom:1px solid var(--border);}
+  .radar-wrap{display:flex;gap:16px;align-items:center;flex-wrap:wrap;}
+  .radar-note{font-size:12px;color:var(--muted);line-height:1.7;flex:1;min-width:220px;}
+
+  /* ===== 结论区：评级理由（一句话）+ 强度分析（分条证据）合为一块 ===== */
+  .panel.verdict{padding:15px 17px;margin-bottom:12px;}
+  .verdict .why-box{border:0;background:var(--info-soft);border-radius:var(--r-sm);padding:11px 13px;margin:0;}
+  .verdict .stale-box{margin:0 0 10px;}
+  .str-hd{margin:14px 0 5px;padding-top:11px;border-top:1px solid var(--border);
+    font-size:11.5px;font-weight:800;letter-spacing:.1em;color:#9aa6b6;}
+  .str-hd::before{content:"";display:inline-block;width:3px;height:10px;border-radius:1px;background:var(--info);margin-right:7px;vertical-align:-1px;}
+
+  /* ===== 强度分析（结构化：导语行 + 条目，不再用 pre-wrap 的原始换行） ===== */
+  .str-body{font-size:13px;line-height:1.7;color:#c6cdd8;}
+  .str-lead{font-weight:800;color:#e8eaef;font-size:13px;margin:9px 0 3px;}
+  .str-lead:first-child{margin-top:0;}
+  .str-body ul{list-style:none;margin:0 0 4px;padding:0;}
+  .str-body li{position:relative;padding-left:14px;margin:2px 0;}
+  .str-body li::before{content:"";position:absolute;left:3px;top:.72em;width:4px;height:4px;border-radius:50%;background:#6b7686;}
+  .str-body p{margin:0 0 4px;}
+  .str-body p:last-child{margin-bottom:0;}
+  .str-body b{color:var(--text);}
+
+  /* ===== 能力雷达 ===== */
+  .radar-wrap{display:flex;gap:22px;align-items:center;flex-wrap:wrap;}
+  .ablist{flex:1;min-width:250px;display:flex;flex-direction:column;gap:8px;}
+  .abrow{display:grid;grid-template-columns:52px 1fr 52px;gap:3px 10px;align-items:center;font-size:12.5px;}
+  .abname{font-weight:700;}
+  .abtrack{height:8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+  .abfill{display:block;height:100%;background:linear-gradient(90deg,#e05c4a,#e8a33d);}
+  .abval{font-weight:800;display:flex;align-items:center;justify-content:flex-end;gap:4px;}
+  .abpct{font-weight:800;font-size:12.5px;text-align:right;color:var(--text);}
+  .abname i{font-style:normal;font-size:10px;color:var(--muted);margin-left:4px;font-weight:600;}
+  /* 雷达不再套第二层卡片：面板内部只用分隔线分区（卡中卡会把层级压平） */
+  .rb{padding:0 0 0 14px;margin-bottom:0;border-left:1px solid var(--border);}
+  .rb:first-child{padding-left:0;border-left:none;}
+  /* 算法评分 / 相对位置 两张雷达左右并排：各 flex:1 等宽、图按栏宽缩放，两图高度天然一致（平行对齐）。
+     只在真正的窄屏（<760px）才折回上下，保证桌面端「一眼看全」。 */
+  .rb-pair{display:flex;gap:0;align-items:stretch;flex-wrap:nowrap;}
+  .rb-pair>.rb{flex:1 1 0;min-width:0;display:flex;flex-direction:column;}
+  .rb-pair>.rb+.rb{padding-left:18px;}
+  .rb-pair svg{width:100%;height:auto;display:block;}
+  .rb-pair .rb-body{justify-content:center;flex:1;}
+  .rb-h{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+  .rb-h span{font-size:12px;font-weight:800;letter-spacing:.04em;color:#aab3c0;}
+  .rb-h em{font-style:normal;font-size:10.5px;color:var(--muted);}
+  .rb-body{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  /* 雷达图例：虚线不是装饰，必须就地说明，不能只写在折叠里 */
+  .rb-lg{display:flex;align-items:center;gap:6px;margin-top:2px;font-size:11px;color:var(--muted);flex-wrap:wrap;}
+  .rb-lg i{display:inline-block;width:16px;border-top:2px solid #e05c4a;}
+  .rb-lg i.dash{border-top:1.5px dashed #8b94a6;margin-left:8px;}
+  /* 定位五项的门槛圈：绿＝中门槛、金＝高门槛（颜色跟「中/高」档位一致，不用另记一套） */
+  .rb-lg i.k-mid{border-top-color:#4caf7d;}
+  .rb-lg i.k-hi{border-top-color:#e8a33d;}
+  .rb-lg i.mas{width:auto;border:none;font-style:normal;margin-left:10px;color:#8b94a6;}
+  /* 八轴图上：金＝拿手（池内名次最高）、灰＝短板（名次最低） */
+  .rb-lg i.best{border-top-color:#e8a33d;}
+  .rb-lg i.worst{border-top-color:#8b94a6;}
+  /* 派生图上：顶点颜色＝等级（嘲讽反过来，越高越招打） */
+  .rb-lg i.lg{width:14px;border-top:2px solid #4caf7d;margin-left:10px;}
+  .rb-lg i.lg.md{border-top-color:#e8a33d;}
+  .rb-lg i.lg.lo{border-top-color:#e05c4a;}
+  .cap-pick{margin-top:4px;font-size:11.5px;color:var(--muted);}
+  .cap-pick i.id-pick{font-style:normal;color:#c6cdd8;}
+  /* 派生雷达：数值直接写在轴标签下方（radarSVG 的 sub），不另开表格；图例带标签 */
+  .lv-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+  /* 派生雷达图例：放在图下方，整块不被压缩（宽度不够时整块换行，而不是把文字挤成多行） */
+  .cap-lg{flex:0 0 auto;display:flex;flex-wrap:wrap;gap:5px 16px;padding:7px 12px;border:1px solid #3f9e9740;border-radius:8px;background:#ffffff08;}
+  .cap-lg-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);flex-wrap:wrap;}
+  .cap-lg-row .ln{display:inline-block;width:16px;height:0;border-top:2px solid #8b94a6;margin-right:2px;}
+  .cap-lg-row .ln.k-mid{border-top-color:#4caf7d;}
+  .cap-lg-row .ln.k-hi{border-top-color:#e8a33d;}
+  .cap-lg-row .lv-note{color:#8b94a6;}
+  .cap-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 3px 0 6px;vertical-align:middle;}
+  /* 能力补齐右栏：内容整体居中，分隔线撑满整行高度，与左栏（图＋图下信息）首尾平齐 */
+  .cap-info{flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;}
+  .cap-info .radar-meta{flex-direction:column;align-items:flex-start;gap:5px;margin-top:0;}
+  .cap-info .diag-inline{display:block;flex:none;}
+  .cap-info .diag-inline .diag-lb{display:block;margin-bottom:5px;}
+  .cap-info .diag-inline .diag-g{grid-template-columns:1fr;gap:6px;}
+  .cap-info .diag{margin-top:0;border-left:none;background:transparent;padding:0;}
+  /* 八轴两图共享图例：移到整对雷达下方，居中，标注两图通用 */
+  .rb-lg-shared{justify-content:center;margin:2px 0 10px;}
+  .rb-lg-shared .rb-lg-note{color:#8b94a6;margin-left:6px;}
+  /* 派生雷达左栏（图 + 图下信息）与右栏（三芯片＋一眼诊断）平行：
+     上手→精通／推荐／门槛图例放在图的紧下方，正好填掉原先图底的空白，
+     两栏高度也就对齐了；雷达尺寸保持和八轴雷达一致，不放大。 */
+  .rb-cap{display:flex;gap:16px;align-items:stretch;flex-wrap:wrap;margin:2px 0 10px;}
+  .rb-cap>.rb{flex:1 1 320px;min-width:0;margin-bottom:0;display:flex;flex-direction:column;}
+  .rb-cap>.rb .rb-body{flex:1;justify-content:center;align-items:center;}
+  .rb-cap .cap-side{flex:0 1 250px;min-width:190px;display:flex;flex-direction:column;justify-content:flex-start;font-size:12px;color:#8b94a6;padding-left:16px;border-left:1px solid var(--border);}
+  .cap-foot{display:flex;align-items:center;justify-content:center;gap:6px 22px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#8b94a6;}
+  .cap-foot .mas{margin-left:0;display:block;line-height:1.5;}
+  .cap-foot .cap-pick{margin-top:0;color:#bfe0dd;font-size:11.5px;}
+  .cap-foot .cap-pick i.id-pick{color:#c6cdd8;}
+  /* 八轴雷达 + 右侧信息栏（规则风险/可操作性/将池依赖 三芯片 + 一眼诊断），省竖向空间 */
+  /* 场景切片：有原文就列原文，没写就写「未提及」——不拿缺省值冒充数据 */
+  .scn-note{margin-top:8px;padding:8px 10px;background:var(--panel);border:1px solid var(--border);border-radius:var(--r-sm);}
+  .scn-row{display:flex;gap:10px;align-items:baseline;padding:2px 0;font-size:12.5px;}
+  .scn-n{flex:0 0 150px;color:var(--muted);}
+  .scn-v{flex:1;line-height:1.55;}
+  .scn-v.na,.rm.na{color:#7d8798;}
+  /* 身份推荐：分数说「适应性好不好」，这句说「那到底坐哪」 */
+  .rm .id-pick{font-style:normal;margin-left:6px;font-size:11.5px;color:#8b94a6;}
+  .radar-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .rm{font-size:12px;color:#c6cdd8;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:3px 10px;}
+  .rm b{margin-right:6px;color:inherit;opacity:.9;}
+  .rm .cp{margin-left:6px;font-size:11px;opacity:.7;text-decoration:none;font-style:normal;}
+  .rm.ok{border-color:#4caf7d66;background:#4caf7d1f;color:#8fe0b0;}
+  .rm.mid{border-color:#e8a33d66;background:#e8a33d1f;color:#f0bd6a;}
+  .rm.bad{border-color:#e05c4a66;background:#e05c4a1f;color:#ff9d90;}
+  .g{font-weight:800;padding:0 5px;border-radius:4px;line-height:1.65;font-style:normal;font-size:11px;}
+  .g-you{background:#e05c4a26;color:#ff9d90;border:1px solid #e05c4a4d;}
+  .g-hao{background:#e8a33d26;color:#f0bd6a;border:1px solid #e8a33d4d;}
+  .g-zhong{background:#5b9bd826;color:#8cc0f5;border:1px solid #5b9bd84d;}
+  .g-cha{background:#6b728026;color:#a8b0bd;border:1px solid #6b72804d;}
+  .g-wu{background:#4a4f5826;color:#8a93a3;border:1px solid #4a4f5855;}
+  .abnum{font-style:normal;font-size:10.5px;color:var(--muted);margin-left:3px;font-weight:600;}
+  .abtag{font-size:10px;font-weight:700;padding:0 4px;border-radius:4px;line-height:1.65;font-style:normal;}
+  .abtag.hi{background:#e05c4a2e;color:#ff9d90;border:1px solid #e05c4a55;}
+  .abtag.mid{background:#5b9bd82e;color:#8cc0f5;border:1px solid #5b9bd855;}
+  .abtag.lo{background:#6b72802e;color:#a8b0bd;border:1px solid #6b728055;}
+  .abnote{grid-column:2/4;font-size:11.5px;color:var(--muted);}
+
+  /* ===== 歧义徽标 / 使用场景 ===== */
+  .amb{display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border-radius:var(--r-sm);font-size:12.5px;line-height:1.75;}
+  .amb.ok{background:#4caf7d1a;border:1px solid #4caf7d55;}
+  .amb.bad{background:#e8a33d1a;border:1px solid #e8a33d55;}
+  .amb.mid{background:#e8a33d0f;border:1px solid #e8a33d44;}
+  .amb-extra{margin-top:8px;padding-top:8px;border-top:1px dashed #e8a33d55;font-size:12.5px;line-height:1.75;color:#d8c9a8;}
+  .amb-extra b{color:#f0bd6a;}
+  /* 记录缺口单独一行，和「能不能照原文打」分开说 */
+  .amb-note{margin-top:8px;padding:10px 13px;border:1px solid #b7791f44;border-left:3px solid #b7791f;background:#b7791f12;border-radius:var(--r-sm);font-size:12.5px;line-height:1.8;color:#d8c9a8;}
+  .amb-note b{color:#f0bd6a;}
+  .cap-note{margin-top:8px;padding:8px 10px;border-left:3px solid #3f9e97;background:#3f9e9714;border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:12.5px;line-height:1.7;color:#bfe0dd;}
+  /* 只给整块标题上青色；芯片里的 <b> 标签必须继承芯片颜色，否则红/绿芯片上会挂一个青色标题 */
+  .cap-note>b{color:#7fd4cf;}
+  .cap-note .radar-meta{margin:6px 0 4px;}
+  .cap-fm{font-size:11.5px;color:var(--muted);line-height:1.6;}
+  /* 一眼诊断：由本卡各轴 vs 全池中位现算，只陈述分布事实，不做主观评价 */
+  .diag{margin-top:8px;padding:8px 12px;border-left:3px solid #6b7280;background:#6b728012;border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.8;color:#c6cdd8;}
+  .diag>b{color:#e6e8ec;}
+  /* 一眼诊断：三格速览（节奏／依赖／稳健），每项都给结论，扫读比"只在出问题时列行"更快 */
+  .diag-hd{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-weight:700;font-size:12.5px;color:#e6edf3;}
+  .diag-note{font-size:10.5px;font-weight:400;color:var(--muted);}
+  .diag-g{display:grid;grid-template-columns:1fr;gap:6px;margin-top:7px;}
+  .dc{border-left:3px solid #4caf7d99;background:#4caf7d0f;border-radius:0 6px 6px 0;padding:5px 9px;}
+  .dc.warn{border-left-color:#e8a33daa;background:#e8a33d12;}
+  .dc.bad{border-left-color:#e05c4aaa;background:#e05c4a12;}
+  .dc i{display:block;font-style:normal;font-size:10px;font-weight:700;color:#9aa4b2;letter-spacing:.06em;margin-bottom:1px;}
+  .dc span{display:block;font-size:11.5px;line-height:1.5;color:#c6cdd8;}
+  /* 横排版：信息带里与芯片并排，三格横排 */
+  .diag-inline{display:flex;align-items:center;gap:10px;flex:1 1 420px;min-width:0;}
+  .diag-inline .diag-lb{flex:none;font-size:12px;font-weight:700;color:#e6edf3;}
+  .diag-inline .diag-g{flex:1;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:0;}
+  .diag-inline .dc{background:#ffffff08;border:1px solid var(--border);border-left:3px solid #4caf7d99;border-radius:var(--r-sm);padding:6px 10px;}
+  .diag-inline .dc.warn{border-left-color:#e8a33daa;}
+  .diag-inline .dc.bad{border-left-color:#e05c4aaa;}
+  /* 信息带：芯片 + 一眼诊断，横排一行（替代原先挂在雷达右侧的侧栏） */
+  .rb-info{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap;margin-top:8px;padding-top:9px;border-top:1px solid var(--border);}
+  .rb-info .radar-meta{flex:0 0 auto;align-self:center;margin-top:0;}
+  .rb-info .diag{margin-top:0;border-left:none;background:transparent;padding:0;}
+  /* 能力补齐分组标题（压制 / 结构） */
+  .cap-grp{margin:8px 0 2px;font-size:11.5px;font-weight:700;color:#7fd4cf;letter-spacing:.04em;opacity:.85;}
+  /* 阶段画像：开局 / 中期 / 残局 三条 */
+  .ph-note{margin-top:8px;padding:8px 11px;border:1px solid #7b6bd644;border-left:3px solid #7b6bd6;background:#7b6bd612;border-radius:var(--r-sm);font-size:12.5px;line-height:1.75;color:#cfc8ee;}
+  .ph-note b{color:#a99bf0;}
+  .ph-row{display:grid;grid-template-columns:38px 1fr 34px;align-items:center;gap:8px;margin:4px 0;font-size:12px;}
+  .ph-row .ph-n{color:var(--muted);white-space:nowrap;}
+  .ph-row .ph-bar{height:9px;background:var(--bg);border-radius:5px;overflow:hidden;border:1px solid var(--border);}
+  .ph-row .ph-bar i{display:block;height:100%;background:#6a5acd;border-radius:5px;}
+  .ph-row.ph-top .ph-bar i{background:#a99bf0;}
+  .ph-row.ph-top .ph-n,.ph-row.ph-top .ph-v{color:#cfc8ee;font-weight:700;}
+  .ph-row .ph-v{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;}
+  /* 标题行上的结论短句（阶段画像 / 能力补齐）：跟着标题行排版，颜色继承所在色块，
+     不写死紫色——它在紫色块里是紫、在青色块里是青。 */
+  .hd-vd{font-size:12px;}
+  .hd-vd b{font-weight:800;}
+  /* 结论徽章（「有歧义 / 无歧义」这类）已经移到面板标题行，见 .p-tag */
+  .scene{font-size:13.5px;line-height:1.95;}
+
+  .dbars{display:flex;flex-direction:column;gap:6px;}
+  .dbar{display:grid;grid-template-columns:88px 1fr 118px;align-items:center;gap:10px;font-size:12.5px;}
+  .dbar .lb{color:var(--muted);text-align:right;white-space:nowrap;}
+  .dbar .track{height:9px;background:var(--bg);border-radius:5px;overflow:hidden;border:1px solid var(--border);}
+  .dbar .fill{height:100%;background:var(--t2);border-radius:5px;}
+  .dbar .fill.low{background:var(--warn);}
+  .dbar .val{font-weight:700;font-size:12px;display:flex;align-items:center;gap:3px;}
+  .dbar .val .lc{color:var(--warn);font-size:11px;font-weight:600;}
+  .dchips{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+  .dchip{border:1px solid var(--border-strong);border-radius:8px;padding:4px 10px;font-size:12.5px;background:var(--panel2);}
+  .dchip b{margin-right:4px;}
+
+  details{border:1px solid var(--border);border-radius:var(--r-md);margin-bottom:8px;background:var(--panel);}
+  details[open]{box-shadow:0 2px 10px #00000040;}
+  summary{cursor:pointer;padding:9px 12px;font-weight:700;font-size:13.5px;list-style:none;display:flex;align-items:center;gap:8px;}
+  summary::before{content:"▸";color:var(--muted);font-size:12px;}
+  details[open] summary::before{content:"▾";}
+  summary::-webkit-details-marker{display:none;}
+  .d-content{padding:2px 14px 12px;font-size:13px;line-height:1.75;color:#c6cdd8;}
+  .d-content .kv{margin-bottom:6px;}
+  .d-content .kv b{color:var(--text);}
+  /* 说明类小字：默认收起成一颗胶囊，只留「怎么读」。结论摆明面，读法/公式/口径点开才看，
+     否则详情页光解释文字就占掉两三屏。
+     用 <button> + 兄弟 <div hidden> 而不是 <details>：胶囊要能挂进面板标题行
+     （「标题：胶囊」同一行），<details> 的展开体必然紧贴 summary，做不到。 */
+  .nd-toggle{display:inline-flex;align-items:center;gap:6px;max-width:100%;flex-wrap:wrap;padding:3px 11px;font-size:11.5px;font-weight:600;
+    font-family:inherit;color:#b9c2cf;border:1px solid var(--border-strong);background:#ffffff0a;border-radius:999px;cursor:pointer;transition:color .12s,border-color .12s,background .12s;}
+  .nd-toggle:hover{color:var(--text);border-color:var(--info-line);background:#ffffff12;}
+  .nd-toggle[aria-expanded="true"]{color:var(--info);border-color:var(--info-line);background:var(--info-soft);}
+  .nd-toggle::before{content:"▸";font-size:10px;color:inherit;}
+  .nd-toggle[aria-expanded="true"]::before{content:"▾";}
+  .nd-body{margin:10px 0 4px;padding:11px 13px;background:#ffffff08;border:1px solid var(--border);border-radius:var(--r-sm);
+    font-size:12px;color:var(--muted);line-height:1.8;}
+  .nd-body[hidden]{display:none;}
+  .nd-body p{margin:0 0 6px;}
+  .nd-body p:last-child{margin-bottom:0;}
+  .nd-body b{color:#c6cdd8;}
+  /* 面板标题行：标题 + 折叠胶囊同一行，胶囊跟在标题后面，不另起一行 */
+  .p-hd{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:9px;padding-bottom:7px;border-bottom:1px solid var(--border);}
+  .p-hd>h3{margin-bottom:0;padding-bottom:0;border-bottom:none;font-size:14px;}
+  /* 面板内部的小节标题行（能力补齐 / 阶段画像）：同样是「标题：胶囊」一行 */
+  .sub-hd{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin-bottom:5px;}
+  .sub-hd b{font-size:12.5px;font-weight:700;color:#c3ccd8;}
+  /* 标题行上的结论小徽章（「描述有没有歧义：无」这种问句标题，答案不该沉到正文里） */
+  .p-tag{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;border:1px solid;line-height:1.6;}
+  .p-tag.ok{color:var(--ok);border-color:#4caf7d55;background:#4caf7d14;}
+  .p-tag.bad{color:var(--warn);border-color:#e8a33d55;background:#e8a33d14;}
+  .deflist{font-size:12.5px;color:var(--muted);margin-top:6px;}
+  .deflist li{margin-left:18px;}
+
+  .footnote{font-size:12px;color:var(--muted);line-height:1.7;border-top:1px dashed var(--border-strong);margin-top:16px;padding-top:10px;}
+
+  /* ===== 档位口径面板（0–5 六档） ===== */
+  .scale-panel{margin-bottom:26px;}
+  .scale-panel .panel{padding:16px 18px 12px;}
+  /* 档位口径面板：默认收起，点标题条展开（原生 details，键盘/触屏都能用）。
+     收起态只占一行标题，展开态与原来的整块一致。 */
+  .scale-details>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+    font-size:15px;font-weight:800;margin:0;}
+  .scale-details>summary::-webkit-details-marker{display:none;}
+  .scale-details>summary::before{content:"";width:4px;height:15px;background:var(--accent);border-radius:2px;flex:none;}
+  .scale-details>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px;}
+  .scale-details .s-hint{margin-left:auto;display:flex;align-items:center;gap:5px;
+    font-size:11.5px;font-weight:600;color:var(--muted);white-space:nowrap;}
+  .scale-details .s-hint i{font-style:normal;font-size:10px;transition:transform .18s;}
+  .scale-details[open] .s-hint i{transform:rotate(180deg);}
+  .scale-details .s-open{display:none;}
+  .scale-details[open] .s-open{display:inline;}
+  .scale-details[open] .s-closed{display:none;}
+  .scale-details[open]>summary{margin-bottom:2px;}
+  .scale-details .scale-lead{margin-top:12px;}
+  .scale-lead{font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:12px;}
+  .scale-lead b{color:var(--text);}
+  .scale-row{display:grid;grid-template-columns:64px 1fr;gap:12px;padding:10px 0;border-top:1px dashed var(--border);}
+  .scale-row:first-of-type{border-top:none;}
+  .scale-badge{display:inline-flex;align-items:center;justify-content:center;height:24px;border-radius:6px;font-size:12px;font-weight:800;color:#fff;white-space:nowrap;}
+  .scale-badge.t0{background:var(--t0);} .scale-badge.t1{background:var(--t1);} .scale-badge.t2{background:var(--t2);}
+  .scale-badge.t3{background:var(--t3);} .scale-badge.t4{background:var(--t4);} .scale-badge.t5{background:var(--t5);}
+  .scale-badge.undecided{background:var(--undecided);}
+  .scale-main{min-width:0;}
+  .scale-name{font-size:13.5px;font-weight:800;margin-bottom:2px;}
+  .scale-name .band{font-weight:600;color:var(--muted);font-size:12px;margin-left:6px;}
+  .scale-def{font-size:12.5px;color:#c6cdd8;line-height:1.7;}
+  .scale-dir{font-size:12.5px;line-height:1.7;margin-top:3px;}
+  .scale-dir b{font-size:11.5px;font-weight:700;border-radius:4px;padding:0 5px;margin-right:6px;}
+  .scale-dir .nerf{background:#e05c4a26;color:#ff8d7e;border:1px solid #e05c4a59;}
+  .scale-dir .buff{background:#4caf7d26;color:#6fd79f;border:1px solid #4caf7d59;}
+  .scale-dir .keep{background:#5b9bd826;color:#8cc0f5;border:1px solid #5b9bd859;}
+  .scale-count{font-size:11.5px;color:var(--muted);border:1px solid var(--border-strong);border-radius:999px;padding:0 8px;margin-left:3px;font-weight:600;}
+
+  /* ===== 灯箱 ===== */
+  .lightbox{position:fixed;inset:0;background:rgba(8,9,12,.94);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:200;padding:20px;cursor:zoom-out;}
+  .lightbox.show{display:flex;}
+  .lightbox img{max-width:96vw;max-height:86vh;object-fit:contain;border-radius:8px;}
+  .lbcap{color:#e6e8ec;margin-top:12px;font-size:15px;font-weight:700;}
+
+  /* ===== 池分析（整池统计视图） ===== */
+  .poolview{position:fixed;inset:0;z-index:150;background:var(--bg);overflow-y:auto;display:none;}
+  .poolview.show{display:block;}
+  .pv-topbar{position:sticky;top:0;z-index:10;background:#14161aee;backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+  .pv-topbar-inner{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:10px 20px;}
+  .pv-sub{margin-left:auto;font-size:11.5px;color:var(--muted);line-height:1.5;text-align:right;white-space:nowrap;}
+  .pv-body{max-width:1040px;margin:0 auto;padding:22px 20px 90px;font-size:14px;line-height:1.8;}
+  .pv-hd{margin:26px 0 12px;font-size:16px;font-weight:800;display:flex;align-items:baseline;gap:10px;}
+  .pv-hd:first-child{margin-top:4px;}
+  .pv-hd em{font-size:12px;font-weight:400;color:var(--muted);font-style:normal;}
+  .pv-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px;}
+  .pv-lead{font-size:13px;color:#c6cdd8;line-height:1.85;margin-bottom:10px;}
+  .pv-lead b{color:#ffd98a;}
+  /* 分布条 */
+  .pv-dist{display:flex;flex-direction:column;gap:7px;}
+  .pv-drow{display:grid;grid-template-columns:118px 1fr 92px;align-items:center;gap:10px;font-size:12.5px;}
+  .pv-drow .lb{text-align:right;color:var(--muted);white-space:nowrap;}
+  .pv-drow .tk{height:16px;background:var(--bg);border-radius:6px;overflow:hidden;border:1px solid var(--border);}
+  .pv-drow .tk i{display:block;height:100%;border-radius:6px;}
+  .pv-drow .vl{font-variant-numeric:tabular-nums;color:#c6cdd8;}
+  /* 通用表格 */
+  .pv-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .pv-tbl th,.pv-tbl td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle;}
+  .pv-tbl th{color:var(--muted);font-weight:600;font-size:11.5px;white-space:nowrap;}
+  .pv-tbl td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .pv-tbl tr:last-child td{border-bottom:none;}
+  .pv-cell{display:inline-block;min-width:34px;text-align:center;border-radius:5px;padding:1px 6px;font-variant-numeric:tabular-nums;font-weight:700;}
+  /* 算法自检 */
+  .au-sum{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;font-weight:700;
+    padding:8px 12px;border-radius:8px;margin-bottom:10px;border:1px solid;}
+  .au-sum b{font-size:16px;font-variant-numeric:tabular-nums;}
+  .au-sum span{font-weight:400;font-size:11.5px;opacity:.72;}
+  .au-sum.au-ok{color:#79c98b;border-color:rgba(121,201,139,.35);background:rgba(121,201,139,.08);}
+  .au-sum.au-bad{color:#e05c4a;border-color:rgba(224,92,74,.4);background:rgba(224,92,74,.09);}
+  .pv-tbl tr.au-ok .au-ic{background:#79c98b;}
+  .pv-tbl tr.au-bad .au-ic{background:#e05c4a;}
+  .pv-tbl tr.au-bad td{color:#e05c4a;}
+  .pv-tbl tr.au-bad td:nth-child(3){color:var(--muted)!important;}
+  .au-ic{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;vertical-align:1px;}
+  .pv-tbl td.au-d{text-align:left;font-variant-numeric:tabular-nums;color:#c6cdd8;width:20%;min-width:120px;}
+  /* 轴基准条 */
+  .pv-axis{display:grid;grid-template-columns:52px 1fr 120px;align-items:center;gap:10px;margin:6px 0;font-size:12.5px;}
+  .pv-axis .lb{color:var(--muted);text-align:right;}
+  .pv-axis .tk{position:relative;height:14px;background:var(--bg);border-radius:5px;border:1px solid var(--border);}
+  .pv-axis .tk i{position:absolute;top:0;bottom:0;border-radius:3px;}
+  .pv-axis .tk u{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;opacity:.85;}
+  .pv-axis .vl{font-variant-numeric:tabular-nums;color:#c6cdd8;font-size:11.5px;}
+  /* 相关性条 */
+  .pv-corr{display:grid;grid-template-columns:132px 1fr 52px;align-items:center;gap:10px;margin:5px 0;font-size:12.5px;}
+  .pv-corr .lb{color:var(--muted);text-align:right;white-space:nowrap;}
+  .pv-corr .tk{position:relative;height:12px;background:var(--bg);border-radius:4px;border:1px solid var(--border);}
+  .pv-corr .tk i{position:absolute;top:0;bottom:0;border-radius:3px;}
+  .pv-corr .tk u{position:absolute;top:-2px;bottom:-2px;left:50%;width:1px;background:var(--border-strong);}
+  .pv-corr .vl{text-align:right;font-variant-numeric:tabular-nums;color:#c6cdd8;}
+  /* 极值榜 */
+  .pv-ext{display:grid;grid-template-columns:52px 1fr 1fr;gap:8px 12px;font-size:12.5px;align-items:start;}
+  .pv-ext .lb{color:var(--muted);text-align:right;white-space:nowrap;}
+  .pv-ext .hi{color:#ffb3a7;}
+  .pv-ext .lo{color:#9ecbff;}
+  .pv-note{font-size:11.5px;color:var(--muted);line-height:1.7;margin-top:8px;}
+
+  .docview{position:fixed;inset:0;z-index:150;background:var(--bg);overflow-y:auto;display:none;}
+  .docview.show{display:block;}
+  .dv-topbar{position:sticky;top:0;z-index:10;background:#14161aee;backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+  .dv-topbar-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:14px;padding:10px 20px;}
+  .dv-title{font-size:14px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .dv-body{max-width:960px;margin:0 auto;padding:24px 20px 80px;font-size:14px;line-height:1.8;}
+  .dv-body h1{font-size:24px;font-weight:800;margin:18px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--border);}
+  .dv-body h2{font-size:19px;font-weight:800;margin:22px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+  .dv-body h3{font-size:16px;font-weight:800;margin:18px 0 8px;color:var(--accent);}
+  .dv-body h4{font-size:14px;font-weight:800;margin:14px 0 6px;}
+  .dv-body p{margin:8px 0;color:#d3d8e0;}
+  .dv-body ul,.dv-body ol{margin:8px 0 8px 22px;color:#d3d8e0;}
+  .dv-body li{margin:3px 0;}
+  .dv-body blockquote{border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:0 8px 8px 0;padding:8px 14px;margin:10px 0;color:#d3d8e0;}
+  .dv-body hr{border:none;border-top:1px dashed var(--border-strong);margin:18px 0;}
+  .dv-body table{border-collapse:collapse;width:100%;margin:12px 0;font-size:12.5px;display:block;overflow-x:auto;}
+  .dv-body th,.dv-body td{border:1px solid var(--border-strong);padding:5px 9px;text-align:left;vertical-align:top;white-space:nowrap;}
+  .dv-body th{background:var(--panel2);font-weight:700;}
+  .dv-body td{color:#c6cdd8;}
+  .dv-body tr:nth-child(even) td{background:#1a1d24;}
+  .dv-loading{padding:60px;text-align:center;color:var(--muted);}
+
+  @media (max-width:900px){
+    .layout{grid-template-columns:1fr;}
+    .sidebar{position:static;}
+    .article{grid-template-columns:1fr;}
+    .fig{position:static;max-width:340px;}
+    .doc-links{gap:6px;}
+    .doc-links button{padding:4px 8px;font-size:12px;}
+    #search{max-width:180px;}
+    /* 窄屏：标题与「点击展开」可能挤不下，允许折行，不缩字号到看不清 */
+    .scale-details>summary{flex-wrap:wrap;row-gap:4px;font-size:14px;}
+    .scale-details .s-hint{font-size:11px;}
+  }
+  /* 窄屏才允许两张雷达上下叠；桌面端始终平行并排 */
+  @media (max-width:760px){
+    .rb-pair{flex-wrap:wrap;}
+    .rb-pair>.rb{flex:1 1 100%;}
+  }
+  /* 派生雷达右栏真换行到图下方时，去掉竖分隔线，否则左边缘会多出一条悬空的线 */
+  @media (max-width:640px){
+    .rb-cap .cap-side{flex:1 1 100%;padding-left:0;border-left:none;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">三国杀 <b>DIY 梯度榜</b><span class="ver">v10.1</span><span class="build" title="页面构建时间。数字对不上榜单时，先按 Ctrl+F5 强制刷新">10-24 14:39</span></div>
+    <button id="poolBtn" title="整池统计：档位分布、阵营/设计者对比、能力短板、强弱成因、结论稳定性">池分析</button>
+    <button id="algoBtn" data-doc="算法说明.md" title="各区域（档位/雷达/D分）的计算方法">算法说明</button>
+    <input id="search" type="search" placeholder="搜索武将 / 技能 / 关键词…（如：封印、觉醒、摸牌）">
+    <nav class="doc-links">
+      <button data-doc="DIY裁决协议-v10.0.md">协议</button>
+      <button data-doc="评级总览-v10.0.md">总览</button>
+      <button data-doc="评级详表-v10.0.md">详表</button>
+    </nav>
+    <button id="shareBtn" class="share-btn" title="复制公网分享链接（可直接在 QQ / 微信里点开）">分享</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="side-block">
+      <div class="side-title">档位导航</div>
+      <ul id="tierNav" class="tier-nav"></ul>
+    </div>
+    <div class="side-block">
+      <div class="side-title">评分模式</div>
+      <div id="modeFilter" class="chips"></div>
+    </div>
+    <div class="side-block">
+      <button id="testScoreBtn" class="test-btn" type="button" onclick="openTestScore()">试算半成品设计</button>
+    </div>
+    <div class="side-block">
+      <div class="side-title">阵营筛选</div>
+      <div id="factionFilter" class="chips"></div>
+    </div>
+    <div class="side-block">
+      <div class="side-title">设计者筛选</div>
+      <div id="authorFilter" class="chips"></div>
+    </div>
+    <div class="side-block">
+      <div class="side-title">属性筛选</div>
+      <div id="extraFilter" class="chips"></div>
+    </div>
+    <div class="side-block">
+      <div class="side-title">排序方式</div>
+      <div id="sortFilter" class="chips"></div>
+      <button id="sortDirBtn" class="sort-dirbtn"></button>
+    </div>
+    <div class="side-block small">
+      <div class="side-title">关于本榜</div>
+      <p>依据 <a href="javascript:void(0)" onclick="openDoc('DIY裁决协议-v10.0.md')">DIY裁决协议</a>，现收录 <b><span id="stTotal">—</span> 张卡</b>（已评级 <span id="stRated">—</span> 张 · 待评级 <span id="stUnrated">—</span> 张）。<b>T0–T5 六档</b>，判档口径见主区顶部面板；点卡片看雷达图、评级理由、强度分析与失灵场景。分享请点顶栏「分享」。</p>
+      <p class="side-risk">规则风险·中 <b><span id="stMid">—</span> 张</b>：可定档 <span id="stMidOk">—</span>（T2 <span id="stMidT2">—</span> / T3 <span id="stMidT3">—</span>），分数上限 <span id="stCapMid">—</span>；另 <span id="stMidUnd">—</span> 张未定档。</p>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<div id="detail" class="detail">
+  <div class="d-topbar">
+    <div class="d-topbar-inner">
+      <button class="backbtn" id="backBtn">← 返回榜单</button>
+      <div class="crumb" id="crumb"></div>
+      <div class="pagenav">
+        <button id="prevBtn">‹ 上一位</button>
+        <button id="nextBtn">下一位 ›</button>
+      </div>
+    </div>
+  </div>
+  <div class="article" id="article"></div>
+</div>
+
+<div id="docview" class="docview">
+  <div class="dv-topbar">
+    <div class="dv-topbar-inner">
+      <button class="backbtn" id="docBackBtn">← 返回榜单</button>
+      <div class="dv-title" id="docTitle"></div>
+    </div>
+  </div>
+  <div class="dv-body" id="docBody"><div class="dv-loading">加载中…</div></div>
+</div>
+
+<div id="poolview" class="poolview">
+  <div class="pv-topbar">
+    <div class="pv-topbar-inner">
+      <button class="backbtn" id="poolBackBtn">← 返回榜单</button>
+      <div class="dv-title">池分析 · 这 110 张作为一个整体</div>
+      <div class="pv-sub">全部由站点内数据现算，无手估<br>统计口径见《算法说明》⑧</div>
+    </div>
+  </div>
+  <div class="pv-body" id="poolBody"></div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <img id="lbImg" alt="">
+  <div class="lbcap" id="lbCap"></div>
+</div>
+
+<!-- 数据外置：1.6MB 内联会让浏览器在整页下载完之前一片空白。拆出去以后页面壳先绘制，
+     列表等 cards-data.js 到了再渲染；文档全文（约 0.7MB）只在点「文档」时才按需加载。 -->
+<script src="cards-data.js"></script>
+<script>
+const DATA = window.__DATA__||[];
+/* 四个 md 文档由 build_gallery.js 构建时写成 cards-docs.js，点开文档时再按需加载
+   （file:// 双击也能用：注入的是同目录的 <script>，不是 fetch） */
+let EMBED_DOCS = {};
+/* 构建期自检结果：每条都是「这句宣称在本次构建里真的成立吗」，不成立会标红 */
+const AUDIT = [{"name":"卡片入站完整","ok":true,"detail":"112 张（详表 112 + 未参评存根 0）","note":"文档里有描述的卡一张不少地进了榜；孤儿条目在 4.2 已丢弃"},{"name":"分数可复算（由强度分与修正推出）","ok":true,"detail":"107 / 107","note":"榜单分不是第二次手估：带内直接取、降档取上沿、风险封顶，三种取法唯一"},{"name":"分数落在档带内","ok":true,"detail":"0 张越界","note":"档位与分数不打架：T2 的卡不会出现 5.5 分"},{"name":"评分项完整（11 项）","ok":true,"detail":"107 / 107","note":"缺项的卡不给档位，会被判未定档"},{"name":"轴值单一来源","ok":true,"detail":"112 张有轴值","note":"雷达、能力补齐、阶段画像共用同一套换算，不存在第二套口径"},{"name":"推演区间覆盖","ok":true,"detail":"107 / 107","note":"每张定档卡都有 90% 区间与跨档概率，不用点估计冒充确定结论"},{"name":"榜单排序单调","ok":true,"detail":"档位 → 分数降序 → 编号","note":"页面的「上一位/下一位」与榜单顺序一致"},{"name":"未定档卡无分数","ok":true,"detail":"5 张未定档/未参评","note":"读不出唯一打法的卡不硬给一个数"},{"name":"降档必有门槛记录","ok":true,"detail":"107 / 107","note":"每张被压下来的卡都能说出是哪一道门，读者才知道该补什么"},{"name":"身份场模式 == 档位分（反推一致）","ok":true,"detail":"107 / 107","note":"2v2 之外，身份场模式就是现行算法，分数必须与顶层一致"},{"name":"2v2 分数可落带·概率合法","ok":true,"detail":"107 / 107","note":"2v2 与身份场共用同一档带与边界口径，纯函数聚合无逐卡人工覆盖"}];
+/* ---- 规则常量：构建时从 rules.json 注入，页面内不写任何档带/封顶数字 ----
+   档带、封顶、门槛、雷达权重、派生门槛全部在这里取。改规则改 rules.json 再重建，
+   不要在这个文件里改数字——写死一份就等于造了第二个源头，迟早对不上。 */
+const RULES = {"_note":"唯一规则常量源。任何消费方都从这里读，不得再在代码里写死第二份。改数字只改本文件，然后依次跑 mc_tier.py → build_gallery.js → verify_all.py。","_consumers":["mc_tier.py（Python 直接读）","build_gallery.js（读后计算 + 注入前端）","sync_radar.py（Python 直接读）","gallery_template.html（只用注入的 RULES，页面内不出现数字字面量）","verify_all.py（把本文件与构建产物逐值比对）"],"version":"10.0","band":{"_note":"档带：lo[t] 为 t 档下界，hi[t] 为 t 档上界（= lo[t+1] − 0.01，最后一档见 hi）。分数落带、档位显示、翻档条件、TIER_SCALE 文案全部由这一组数生成。","lo":[7.5,5.5,4.5,3.5,1.8],"hi":[9.99,7.49,5.49,4.49,3.49,1.79],"seg":3},"risk_cap":{"_note":"规则风险封顶：中 → 分数不得高于 5.3（即不得优于 2 档顶）；高 → 不得高于 3.4（不得优于 4 档顶）。","中":5.3,"高":3.4},"anchors":{"_note":"A（每轮收益 EPR）→ D1 的分段线性手定表，与 算法说明 ④ 一致。A 超出最后一个点后按 slope_above 外推。","points":[[0,0],[0.5,2.8],[0.8,3.5],[1.2,4.5],[1.5,5],[2,6.5],[2.8,8]],"slope_above":1.25},"gates":{"_note":"硬门槛。只降不升，且互相独立——分数够了不等于档位过了。demote() 与 demote_trace() 共用这一份。","risk_high_floor":4,"risk_mid_floor":2,"ambig_high_floor":2,"t1":{"_note":"进 T1 要：裸装 D9 ≥ 6，或（配合 D9 ≥ 6 且裸装 D9 > 4）；同时 R 层=低、描述歧义≠高、将池依赖≠高、上手与精通差距 < 1 档。","d9_bare_min":6,"d9_pair_min":6,"d9_bare_min_if_paired":4,"mastery_gap_max":1},"t2":{"_note":"进 T2 要：防御生存 ≥ 3 且 续航换牌 ≥ 3.5。任一不达标压到 3 档上沿。","d2_min":3,"d6_min":3.5}},"radar":{"_note":"能力雷达：每轴只取语义对应的一个评分项（回复取能力雷达字段），可逐轴追回详表；稳定轴例外（D8 主 0.7 + D10/D11 各 0.15）。再过牌外溢（deck_share × spill × 超出 d6_base 的部分）。axis_range 按轴独立标定到 0–100%，跨轴不可比数值。","weights":{"进攻":[["D1",1]],"爆发":[["D3",1]],"防御":[["D2",1]],"控制":[["D4",1]],"过牌":[["D6",1]],"回复":[["回复判定",1]],"辅助":[["D7",1]],"稳定":[["D8",0.7],["D10",0.15],["D11",0.15]]},"spill":0.8,"d6_base":4,"deck_share":{"_note":"160 张牌堆的功能占比。回复/稳定/过牌 为 0：回复是判定值本身、稳定与过牌不靠摸到特定功能的牌，给占比就是重复计算。","进攻":0.26,"防御":0.19,"爆发":0.26,"控制":0.11,"回复":0,"辅助":0.04,"稳定":0,"过牌":0},"axis_range":{"进攻":[3,8],"爆发":[2,7],"防御":[2,7],"控制":[2,6],"过牌":[3,6.5],"回复":[0,9],"辅助":[1,5.5],"稳定":[3.5,6.5]},"axis_fallback":[1.5,8.5]},"capability":{"_note":"能力补齐五指标：由轴值派生（@D9a/@D9b 表示取 D 项原始分而非轴值，键名大小写要与 getD 的约定一致）。th = [高门槛, 中门槛]，按各指标自己的量程分设，不共用一套。","formula":{"ff":[["爆发",0.5],["进攻",0.3],["控制",0.2]],"bs":[["爆发",0.45],["回复",0.3],["防御",0.25]],"taunt":[["进攻",0.45],["爆发",0.25],["辅助",0.3]],"ver":[["稳定",0.4],["@D9a",0.35],["防御",0.25]],"ceil":[["@D9b",0.45],["辅助",0.35],["过牌",0.2]]},"axis_map":{"_note":"派生雷达的轴顺序与取值键。顺序即顺时针方向；值取 cap 里的同名键，再按各自的中/高门槛折算到 50%/75%（见 anchor_pct）。","axes":[["集火","ff"],["破局","bs"],["泛用性","ver"],["协同上限","ceil"],["嘲讽","taunt"],["身份适应性","ident"]]},"anchor_pct":{"_note":"五边形雷达的刻度：各指标的中门槛固定落在 50%、高门槛固定落在 75%（线性、两端截断到 0–100）。这样圈上的位置跨卡可比、跨批次稳定；五项门槛数值不同，位置已按各自门槛折算，圈上同一半径不代表同一分数。","mid":50,"high":75},"th":{"ff":[5.5,4],"bs":[5,3.5],"taunt":[5,3.5],"ver":[5.5,4.5],"ceil":[5,3.8],"ident":[6.5,5]},"invert":["taunt"],"scenario":{"_note":"场景组：身份适应性（从详表维度B 的身份等级解析）。数据源是详表**已经写下**的定性结论，不是新造评分。上手→精通直接显示原文档位，不做成分数。","ident_grade":{"_note":"维度B 里的等级词 → 分值。按出现频率与语义间距定，不按等距：优与强差 0.5（都算「能打」），中与弱差 3（一个是能用、一个是别选）。","最佳":9,"最优":9,"优":8,"强":7.5,"中上":6.5,"可用":5.5,"中下":3.5,"中":5,"弱":2,"差":1.5},"ident_default":6,"ident_w":[0.7,0.3],"no_data":{"_note":"位置适应性／小范围作战／后置位 三项不立分数：维度B 里 1v1 只 4/110、2v2 25/110、斗地主 7/110、先手 4/110、后手 2/110，维度C 与「使用场景」字段全表为空。上限水平同样不打分：精通档位只有 1/2/3 三个取值、98% 的卡集中在 1 档与 2 档，且 78% 的卡上手即精通——做成 0–10 的分数是假精度，改为直接显示「上手 T3 → 精通 T2」。","axes":["位置适应性","小范围作战","后置位能力"]}}},"phase":{"_note":"阶段画像：先把八轴换成「本批排名百分位」，再按下面权重加权 → 0–100 的本批位置。不要把权重直接乘原始分（量程差会污染）。","weights":{"open":[["爆发",0.35],["进攻",0.25],["过牌",0.25],["稳定",0.15]],"mid":[["过牌",0.35],["辅助",0.3],["控制",0.2],["进攻",0.15]],"late":[["防御",0.35],["回复",0.3],["爆发",0.2],["进攻",0.15]]},"flat_span":10},"mc":{"_note":"区间传播（mc_tier.py）配置。delta_spread = 修正位移 Δ 的保守不确定性带（±），固定设计常量，仅用于把 Δ 纳入蒙特卡洛抽样以报告边界卡 P(换档)，不改变任何卡的档位/分数。所有栅格（R层/D10/将池依赖/裸配）为确定性点估计：评分是「D1+Δ 的纯函数 + rules.json 硬门槛」，不是统计拟合模型，故不引入概率化「误差模型」。弱点15 已按此裁定闭环——不再挂「待签」。","delta_spread":0.1},"d8":{"_note":"D8 稳定口径：全库统一基准＝最坏切片（最保守、跨卡可比、无逐卡人工例外）。2026-10-22 裁定撤销原 #42 安洁莉娜 / #5 破坏者 的「按主场景 / 阶段B 重算」例外——「按卡单独改口径」属人工单独另外说明，与「评分纯字面、无逐卡人工覆盖」原则冲突。D8 仅影响稳定轴雷达与阶段画像，不进 S（档位/分数不变）；原例外对结果本就无影响（#42 因翻编号已失配、#5 最坏切片与其一致），移除后零变化。原例外清单及说明见历史留痕。","baseline":"最坏切片","exceptions":{}},"discount":{"_note":"折现轮数口径（固定设计常量，不在 mc_tier.py / build_gallery.js 代码链路内消费；仅作文档锚点，防各文档口径漂移）。主场景 = 斗地主 / 2v2 / 5 人身份，排除 8 人身份，全库统一适用、不按卡单独调整。评分本身不依赖实战折算：D1..D11 与 Δ 已按描述字面语义直接给出，折现轮数只是口径说明，不进任何逐卡计算。","default_rounds":4,"scenarios":["斗地主","2v2","5人身份"],"excluded":["8人身份"]},"modes":{"_note":"评分模式：身份场=现行算法（D1+Δ，单卡生存/政治适配优先）；2v2=同一批 D 项按 2v2 权重重新聚合（集火爆发/控制/协同优先、无内奸），系数全为固定设计常量、无任何逐卡人工覆盖，满足「评分纯字面、无人工成分」。base 为归一化加权均值（Σw·D_k / Σw），penalty 为按该轴等级扣减；use_delta=true 时叠加修正位移 Δ。2v2 的区间/跨档概率复用身份场的同一不确定度包络（卡的分析不确定度不随模式变，仅中心估计移动），边界判定口径与身份场一致。","identity5":{"label":"5人身份场","desc":"身份局（主公/忠臣/反贼/内奸）：单卡生存与政治适配优先","base":{"d1":1},"penalty":{},"use_delta":true},"2v2":{"label":"2v2","desc":"四人两阵营对局：集火爆发/控制/协同优先，无内奸","base":{"d1":1,"d3":0.45,"d4":0.35,"d7":0.3,"d6":0.2,"d2":0.15,"d8":0.1},"penalty":{"d10":{"高":0.3,"中":0.15,"低":0}},"use_delta":true,"sens":1.2}}};
+const BAND_LO = RULES.band.lo;              // 各档下界（高位→低位）
+const BAND_HI = RULES.band.hi;              // 各档上界
+/* mc_tier 全池统计：测试评分面板跑分只用其中的锚点均值（MC._profileMean2v2），
+   避免页面写死 2v2 锚点数字。其余逐卡 mc 数据在 DATA 里，不在此处重复注入。
+   注：必须放在 RULES 与 BAND_LO 之后——verify_all.py 用「const RULES=...;\nconst BAND_LO」
+   抓注入值，中间插别的东西会让正则把 MC 也算进 RULES 而报「Extra data」。 */
+const MC = {"_profileMean2v2":3.9621};
+const R_CAP = RULES.risk_cap;               // {中:5.3, 高:3.4}
+/* 分数 → 档号（唯一实现：deriveHTML / marginHTML / uncHTML 全部调用它） */
+function bandOfS(v){
+  for (let t = 0; t < BAND_LO.length; t++) if (v >= BAND_LO[t]) return t;
+  return BAND_LO.length;
+}
+/* 档内段位：每档再三等分（段数读 rules.json，不写死）。
+   为什么需要：全批 105 张里有 27 张是自然贴在档带边界 0.25 分以内的，
+   这些卡差 0.1 分档位不变、但强弱观感差一截——段位给出档内的第二个刻度。 */
+const SEG_N = (RULES.band && RULES.band.seg) || 3;
+const SEG_NAME = ['下段', '中段', '上段'];
+function segOf(v){
+  const t0 = bandOfS(v);
+  if (t0 < 0 || t0 >= BAND_LO.length) return '';
+  const lo = BAND_LO[t0], hi = BAND_HI[t0];
+  const pos = hi > lo ? (v - lo) / (hi - lo) : 0;
+  const i = Math.min(SEG_N - 1, Math.floor(pos * SEG_N));
+  return SEG_NAME[i];
+}
+/* 档内位置百分比（0%＝刚够到这档，100%＝顶到上沿），与段位同源 */
+function segPos(v){
+  const t0 = bandOfS(v);
+  if (t0 < 0 || t0 >= BAND_LO.length) return 0;
+  const lo = BAND_LO[t0], hi = BAND_HI[t0];
+  return hi > lo ? Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100)) : 0;
+}
+/* 档带文案（TIER_SCALE 用）：首档「≥7.5」、中间「5.5–7.4」、末档「<1.8」。
+   上沿取 hi 向下截到一位（hi=7.49 显示 7.4），与 lo 的 0.1 刻度对齐、不留缝。 */
+/* 段位：降档/封顶卡用「原始算式值 S」(mc.s) 算段位，压后分 (score) 只用于显示与排序——
+   否则「被硬门槛压下来的 2 档卡」永远停在「上段」，读者会误以为它很强（评审问题③）。
+   没有 mc 的卡（待评级）回退到 score。 */
+function rawS(c){ return (c.sMode != null) ? +c.sMode : ((c.mc && c.mc.s != null) ? +c.mc.s : (c.score != null ? parseFloat(c.score) : 0)); }
+function scoreRewritten(c){ const s = (c.sMode != null) ? c.sMode : (c.mc && c.mc.s); return !!(s != null && c.score != null && Math.abs(parseFloat(c.score) - (+s)) > 0.05); }
+/* mc_tier 的 score_why 是内部枚举，直接印到标题行会露出 demote / cap-mid 这类代号 */
+function whyLabel(w){
+  return ({'in-band':'档带内取分','demote':'降档压到上沿','below':'抬到档带下沿',
+           'cap-mid':'中风险封顶','cap-high':'高风险封顶'})[w] || '按门槛取分';
+}
+function bandLabel(t){
+  if (t === 0) return '≥' + BAND_LO[0].toFixed(1);
+  if (t >= BAND_LO.length) return '<' + BAND_LO[BAND_LO.length - 1].toFixed(1);
+  return BAND_LO[t].toFixed(1) + '–' + (Math.floor(BAND_HI[t] * 10) / 10).toFixed(1);
+}
+const CAP_MID = R_CAP['中'];
+
+const TIER_LABEL = {t0:'T0',t1:'T1',t2:'T2',t3:'T3',t4:'T4',t5:'T5',undecided:'未定档',unrated:'未参评'};
+const TIER_NAME = {t0:'T0 · 急待削弱',t1:'T1 · 强势',t2:'T2 · 常规',t3:'T3 · 平均',t4:'T4 · 偏弱待加强',t5:'T5 · 急需加强',undecided:'未定档 · 描述说不清，判不了',unrated:'未参评 · 文本缺失'};
+const ORDER = ['t0','t1','t2','t3','t4','t5','undecided','unrated'];
+const TIER_COLOR = {t0:'var(--t0)',t1:'var(--t1)',t2:'var(--t2)',t3:'var(--t3)',t4:'var(--t4)',t5:'var(--t5)',undecided:'var(--undecided)',unrated:'var(--unrated)'};
+/* 档位口径与调整方向（每档削弱/加强方向）——band 文案由 bandLabel() 现算，不写死 */
+const TIER_SCALE = [
+  {t:'t0', band:bandLabel(0), name:'急待削弱', def:'一眼就能看出比同池平均强出一截：不用细算，拿出来赢面就明显更大，需要设计者主动削。',
+   dir:'nerf', dirText:'砍收益上限 / 加次数或费用限制 / 触发条件收紧'},
+  {t:'t1', band:bandLabel(1), name:'强势', def:'明显偏强，但没到离谱。要站上这一档得同时满足：规则说得清、不挑将池配合、单靠自己也能打（不指望特定队友兜底）、单挑也不塌、上手不难。只要有一处说不清（描述能被钻空子/要靠特定队友），就被压下去，不进这一档。',
+   dir:'nerf', dirText:'削边角场景（距离/次数/单挑强度），不动核心玩法'},
+  {t:'t2', band:bandLabel(2), name:'常规', def:'能稳定打出自己的打法，不依赖特定队友或特定位置。如果描述里有说不清的地方，分数会被压到 ' + CAP_MID + ' 以内，也不许再往 T1 挤。',
+   dir:'keep', dirText:'维持，或微削边角收益'},
+  {t:'t3', band:bandLabel(3), name:'平均', def:'核心打法完整，只是「启动快不快 / 续不续得上 / 挨打扛不扛得住」里有一样平庸，或者越打收益越少。',
+   dir:'buff', dirText:'补短板（启动 / 续航 / 防御，选一样）'},
+  {t:'t4', band:bandLabel(4), name:'偏弱待加强', def:'打法能跑起来，但有明确的结构问题——某条路描述有歧义打不出来、离不开特定队友、位置不对就废、上手太难，或规则隐患太大把分数压住。',
+   dir:'buff', dirText:'加收益 / 加血 / 去负面 / 修描述歧义'},
+  {t:'t5', band:bandLabel(5), name:'急需加强', def:'核心打法根本不成立（打不出赢法），或残缺到要重做。这和「未定档」是两回事：这里是能判、但判下来很弱。',
+   dir:'buff', dirText:'重做（补核心打法）'},
+  {t:'undecided', band:'—', name:'未定档', def:'描述本身说不清强弱，判不了（第七种结果，不占档位）。这不是「弱」，是暂时给不出结论。',
+   dir:'keep', dirText:'改写描述 / 补全「单挑也能打」的路子后重评'},
+];
+const CAT_MAP = {高:8,中:5,低:2};
+/* 档位区标题旁的调整方向小条 */
+const TIER_DIR = {t0:['nerf','削弱'],t1:['nerf','微削'],t2:['keep','维持'],t3:['buff','补短板'],t4:['buff','加强'],t5:['buff','重做'],undecided:['buff','改描述'],unrated:['keep','—']};
+
+const $ = s => document.querySelector(s);
+const main = $('#main'), detail = $('#detail'), article = $('#article'), docview = $('#docview');
+/* 页面顶部：只在自检失败时出一条红色告警（绿灯时页面外层不留任何附加内容）。
+   口径披露不在这里——已移进「算法说明」页与「池分析」，外层不再挂常驻 details。 */
+function mountTopBanner(){
+  let b = document.getElementById('calibBanner');
+  if(!b){ b = document.createElement('div'); b.id='calibBanner'; b.style.display='none';
+    const lp = main.parentNode;            // .layout 只接受 2 个子元素：.sidebar + #main
+    if(lp && lp.parentNode) lp.parentNode.insertBefore(b, lp);
+    else if(lp) lp.insertBefore(b, main); }
+  const auBad = (AUDIT||[]).filter(a=>!a.ok).length;
+  b.style.display = auBad ? 'block' : 'none';
+  b.innerHTML = auBad
+    ? '<div style="background:#5a1d1d;color:#ffd9d9;padding:8px 14px;border-bottom:1px solid #8a2d2d;font-size:13px">⚠ 本次构建有 <b>'+auBad+'</b> 条不变式未通过，分数仅供参考；详见「池分析 · 算法自检」</div>'
+    : '';
+}
+mountTopBanner();
+let curFilter = '全部', curKeyword = '';
+/* 属性筛选：按「这张卡结论够不够稳」挑卡，和阵营筛选并联（可叠加） */
+let curExtra = '全部';
+/* 设计者筛选：按「这张卡是谁设计的」挑卡，与阵营/属性筛选并联 */
+let curAuthor = '全部';
+
+/* ---------- 档位口径面板 ---------- */
+/* 记忆展开状态：默认收起（占屏太大）。用户点开一次后写 localStorage，
+   之后切筛选/排序重渲染仍保持展开；换设备或清缓存回到默认收起。 */
+const SCALE_OPEN_KEY = 'sgs:scaleOpen';
+let scaleOpen = false;
+try { scaleOpen = localStorage.getItem(SCALE_OPEN_KEY) === '1'; } catch(e) { /* 隐私模式忽略 */ }
+function onScaleToggle(el){
+  scaleOpen = !!el.open;
+  try { localStorage.setItem(SCALE_OPEN_KEY, scaleOpen ? '1' : '0'); } catch(e) { /* ignore */ }
+}
+function renderScale(){
+  const dirTag = k => k==='nerf' ? '<b class="nerf">削弱方向</b>' : k==='buff' ? '<b class="buff">加强方向</b>' : '<b class="keep">调整方向</b>';
+  let h = '<section class="scale-panel"><details class="panel scale-details"'+(scaleOpen?' open':'')+' ontoggle="onScaleToggle(this)">'+
+    '<summary><span class="s-title">档位口径与调整方向（T0–T5 六档）</span>'+
+    '<span class="s-hint"><span class="s-closed">点击展开</span><span class="s-open">点击收起</span><i>▼</i></span></summary>'+
+    '<div class="scale-lead">榜单按强度从高到低分 <b>T0–T5 六档</b>：<b>T0=强到该削</b>，<b>T3=平均</b>，<b>T5=弱到该救</b>。每档带的分数是 0–10 的<b>强度分</b>——按牌面推演算出来的强弱位置，不是胜率统计，越高越强。另有第七种结果<b>未定档</b>：描述本身说不清，暂时判不了，不占档位。每档的判定和调整方向如下：</div>';
+  TIER_SCALE.forEach(s=>{
+    const n = DATA.filter(c=>c.tier===s.t).length;
+    h += '<div class="scale-row"><span class="scale-badge '+s.t+'">'+TIER_LABEL[s.t]+'</span>'+
+         '<div class="scale-main"><div class="scale-name">'+s.name+'<span class="band">分数 '+s.band+'（<span class="scale-count">'+n+' 张</span>）</span></div>'+
+         '<div class="scale-def">'+s.def+'</div>'+
+         '<div class="scale-dir">'+dirTag(s.dir)+s.dirText+'</div></div></div>';
+  });
+  h += '</details></section>';
+  return h;
+}
+
+/* ---------- 设计者（作者）标识 ----------
+   卡片左上角的小条：这张卡是谁设计的。数据来自卡牌文本存档的「设计者」字段，
+   经 extract_cards_source.py → cards_source.json → build 注入 rec.designer。
+   颜色只做区分用，不表达强弱。 */
+const AU_ORDER = ['团长','八陌半','未来夜','未知'];
+function auBadge(c){
+  const d = c.designer || '未知';
+  return '<span class="au-badge" title="设计者：'+esc(d)+'">'+esc(d)+'</span>';
+}
+/* 网格缩略图：没出图的卡用占位块（补图后 rebuild 自动替换）。
+   列表用 cards/t/ 下的 260px 缩略图（约 12KB），详情才用 cards/ 原图（约 145KB）——
+   原先两者共用原图，滚一屏就要下 1MB 以上。 */
+function thumbHTML(c){
+  if (c.noImg || !c.img) return '<div class="thumb-ph">暂无卡图</div>';
+  return '<img src="'+(c.thumb||c.img)+'" alt="'+esc(c.name)+'" loading="lazy">';
+}
+
+/* ---------- 榜单渲染 ---------- */
+function visibleCards(){
+  const kw = curKeyword.trim().toLowerCase();
+  return DATA.filter(c=>{
+    if (curFilter!=='全部' && c.faction!==curFilter) return false;
+    if (curAuthor!=='全部' && (c.designer||'未知')!==curAuthor) return false;
+    if (curExtra==='边界卡' && !c.boundary) return false;
+    if (curExtra==='有问题' && !((c.r && c.r.defects && c.r.defects.length) || (c.mc && c.mc.gate_mismatch))) return false;
+    if (!kw) return true;
+    return (c.name+' '+(c.faction||'')+' '+(c.comment||'')+' '+(c.skills||'')+' '+(c.dimB||'')+' '+(c.loc||'')).toLowerCase().includes(kw);
+  });
+}
+
+/* ---------- 评分模式切换（身份场 / 2v2 ……）----------
+   所有模式都是同一批 D 项的纯函数聚合（系数在 rules.json 的 modes 里），
+   无逐卡人工覆盖。切换时把每张卡的「有效档位/分数/边界/区间中心」整体换成当前模式的值，
+   渲染层（网格/排序/详情/档位导航）只读这几个有效字段，无需每处改判断。 */
+/* 面板是否打开：详情/灯箱/文档/池分析都靠给自身元素加 .show 类来显隐，
+   这里统一按元素 id 查 .show 判定（与 openCard/closeCard 同一套口径）。 */
+function isOpen(name){
+  const p = document.getElementById(name);
+  return !!(p && p.classList && p.classList.contains('show'));
+}
+let curMode = (localStorage.getItem('sgs_mode') || 'identity5');
+if (!curMode || !(RULES.modes && RULES.modes[curMode])) curMode = 'identity5';
+function modeLabel(m){ return (RULES.modes && RULES.modes[m] && RULES.modes[m].label) || m; }
+function applyMode(){
+  DATA.forEach(c=>{
+    const m = (curMode!=='identity5' && c.mc && c.mc.modes && c.mc.modes[curMode]) ? c.mc.modes[curMode] : null;
+    c._bk = c._bk || { tier: c.tier, score: c.score };   // 备份原始身份场值（首次）
+    c.mcMode = m || c.mc;                                 // 详情/彩条用的区间源
+    if (m){
+      c.tier = 't' + m.tier;
+      c.score = String(m.score);
+      c.boundary = m.boundary;
+      c.sMode = m.s;
+    } else {
+      // 回退到身份场（或无模式数据的卡）
+      c.tier = c._bk.tier;
+      c.score = c._bk.score;
+      c.boundary = !!(c.mc && c.mc.boundary);
+      c.sMode = (c.mc && c.mc.s != null) ? c.mc.s : null;
+    }
+  });
+  // 默认视图（分档网格）按当前模式重排：档位 → 分数降序 → 编号
+  DATA.sort((a,b)=>{
+    const ia = ORDER.indexOf(a.tier), ib = ORDER.indexOf(b.tier);
+    const ra = ia<0?99:ia, rb = ib<0?99:ib;
+    if (ra!==rb) return ra-rb;
+    const sa = parseFloat(a.score)||0, sb = parseFloat(b.score)||0;
+    if (sa!==sb) return sb-sa;
+    return (a.num||0)-(b.num||0);
+  });
+  if (typeof renderSidebar==='function') renderSidebar();
+  if (typeof renderMain==='function') renderMain();
+  if (typeof renderDetail==='function' && isOpen('detail')) renderDetail(curDetailName);
+}
+function renderMode(){
+  const mf = $('#modeFilter'); if (!mf) return;
+  mf.innerHTML = '';
+  Object.keys(RULES.modes||{}).forEach(k=>{
+    if (k.startsWith('_')) return;
+    const sp = document.createElement('span');
+    sp.className = 'chip' + (k===curMode ? ' on' : '');
+    sp.textContent = modeLabel(k);
+    sp.onclick = ()=>{ curMode = k; localStorage.setItem('sgs_mode', k); renderMode(); applyMode(); };
+    mf.appendChild(sp);
+  });
+}
+/* ---------- 排序 ---------- */
+const SORT_ITEMS = [
+  ['默认','默认'], ['评分','评分'], ['评级','评级'], ['规则风险','规则风险'],
+  ['进攻','进攻'], ['爆发','爆发'], ['防御','防御'], ['控制','控制'],
+  ['过牌','过牌'], ['稳定','稳定'], ['辅助','辅助'], ['回复','回复'],
+  ['集火','集火'], ['破局','破局'], ['泛用性','泛用性'], ['协同上限','协同上限'], ['嘲讽','嘲讽'], ['身份适应性','身份适应性']
+];
+/* 派生能力指标（详情页「能力补齐」那一组）也放进排序：key 与 card.cap 同键 */
+const CAP_SORT = [['集火','ff'],['破局','bs'],['泛用性','ver'],['协同上限','ceil'],['嘲讽','taunt'],['身份适应性','ident']];
+function capSortKey(){ const e = CAP_SORT.find(x=>x[0]===curSort); return e ? e[1] : null; }
+let curSort = '默认';
+let curSortDir = -1;   // -1 = 从强到弱；1 = 从弱到强
+/* 详情页「上一位/下一位」使用的当前显示顺序：默认视图=分档网格顺序，排序视图=排名列表顺序。
+   不设为 null 时回退到 visibleCards()，避免从 URL/hash 直接进详情页时没有上下文。 */
+let NAV_LIST = null;
+
+/* 排序键：统一成「数值越大越靠前」 */
+function sortKey(c){
+  const ck = capSortKey();
+  if (ck) return (c.cap && c.cap[ck] != null) ? capAxisPct(c, ck) : -1;   // 派生指标：池内分位越高越靠前
+  if (curSort === '评分') { const s = parseFloat(c.score); return isNaN(s) ? -1 : s; }
+  // 评级：0档(i=0)最前，未定档最后；同档内再用分数细分（分数越高越前）
+  if (curSort === '评级') {
+    const i = ORDER.indexOf(c.tier);
+    const s = parseFloat(c.score) || 0;
+    return (i < 0 ? 99 : i) * -100 + s;
+  }
+  // 规则风险：默认把「风险大」的排前面（高=3、中=2、低=1），点反转按钮才看稳的
+  if (curSort === '规则风险') {
+    const v = c.d && c.d.d10;
+    return ({高:3, 中:2, 低:1})[v] || 0;
+  }
+  return (c.radarPct && c.radarPct[curSort] != null) ? c.radarPct[curSort] : -1;
+}
+function renderSort(){
+  const sf = $('#sortFilter'); if (!sf) return;
+  sf.innerHTML = '';
+  SORT_ITEMS.forEach(([k, label])=>{
+    const sp = document.createElement('span');
+    sp.className = 'chip' + (k === curSort ? ' on' : '');
+    sp.textContent = label;
+    sp.onclick = ()=>{ curSort = k; renderSort(); renderMain(); };
+    sf.appendChild(sp);
+  });
+  const btn = $('#sortDirBtn');
+  if (curSort === '默认') { btn.style.display = 'none'; }
+  else if (curSort === '规则风险') {
+    btn.style.display = '';
+    btn.textContent = curSortDir === -1 ? '↓ 险 → 稳（点击反转）' : '↑ 稳 → 险（点击反转）';
+  }
+  else {
+    btn.style.display = '';
+    btn.textContent = curSortDir === -1 ? '↓ 从强到弱（点击反转）' : '↑ 从弱到强（点击反转）';
+  }
+  // 非默认排序时没有档位分节，隐藏档位导航避免锚点失效
+  const navBlock = $('#tierNav') && $('#tierNav').parentElement;
+  if (navBlock) navBlock.style.display = curSort === '默认' ? '' : 'none';
+}
+
+function renderRank(){
+  const rows = visibleCards().slice().sort((a,b)=>{
+    const d = sortKey(b) - sortKey(a);        // d>0 表示 a 更靠前（强→弱）
+    return curSortDir === -1 ? d : -d;
+  });
+  NAV_LIST = rows;   /* 详情页翻页跟随「当前排序视图」而不是 DATA 原顺序 */
+  if (!rows.length){
+    main.innerHTML = '<div class="empty-tip" style="display:block">没有匹配的卡片，换个关键词或清除筛选试试。</div>';
+    return;
+  }
+  const isAbil = ABIL_CORE.some(x=>x[0]===curSort);
+  const capK = capSortKey();
+  const dirWord = curSort === '规则风险'
+    ? (curSortDir === -1 ? '从险到稳' : '从稳到险')
+    : (curSortDir === -1 ? '从强到弱' : '从弱到强');
+  let h = '<section class="rank-panel"><div class="rank-head"><h3>按「'+curSort+'」排序</h3>'+
+    '<span class="sub">'+dirWord+' · 共 '+rows.length+' 张</span></div>'+
+    '<ol class="rank-list">';
+  rows.forEach((c,i)=>{
+    let val = '—', bar = 0;
+    if (curSort === '评分'){ val = c.score ? c.score : '—'; bar = c.score ? parseFloat(c.score)/10*100 : 0; }
+    else if (curSort === '评级'){ val = TIER_LABEL[c.tier] || '未定档'; bar = c.score ? parseFloat(c.score)/10*100 : 0; }
+    else if (curSort === '规则风险'){ const lv = (c.d && c.d.d10) || '—'; val = lv; bar = (CAT_MAP[lv] || 0) / 10 * 100; }
+    else if (capK) { const has = c.cap && c.cap[capK] != null; const v = has ? capAxisPct(c, capK) : 0; val = has ? (v + '%') : '—'; bar = v; }
+    else { const v = (c.radarPct && c.radarPct[curSort]) || 0; val = v + '%'; bar = v; }
+    h += '<li class="rank-row'+(i<3?' top'+(i+1):'')+'" data-name="'+esc(c.name)+'">'+
+      '<span class="rk">'+(i+1)+'</span>'+
+      '<span class="thumb2">'+(c.noImg||!c.img?'':'<img src="'+(c.thumb||c.img)+'" alt="'+esc(c.name)+'" loading="lazy">')+'</span>'+
+      '<span class="rk-name">'+esc(c.name)+'<span class="rk-au">'+esc(c.designer||'未知')+'</span><span class="rk-fac">'+esc(c.faction||'')+'</span></span>'+
+      '<span class="badge '+c.tier+'">'+(TIER_LABEL[c.tier]||'未定档')+'</span>'+
+      '<span class="hp">'+(c.score||'—')+'</span>'+
+      '<span class="rk-bar"><span class="fill" style="width:'+Math.max(0,Math.min(100,bar))+'%"></span></span>'+
+      '<span class="rk-val">'+val+'</span>'+
+    '</li>';
+  });
+  h += '</ol>'+
+    '<div class="rank-note">'+((capK)
+      ? '这些都是详情页「能力补齐」里的派生指标（集火／破局／泛用性／协同上限／嘲讽／身份适应性），按各自中·高门槛折算的池内分位：<b>同一分位不表示同一绝对分</b>，只表示「离自己的门槛有多远」。嘲讽是反向指标——分位越高＝越招打（坏事）。看单项不如看「池内分位最高的一项」。'
+      : (isAbil
+        ? '「'+curSort+'」取雷达图「算法评分」那一栏的数值：0% = 基本没有这项能力，100% = 达到这项能力的实用顶级。<b>轴长=这项能力的绝对高低，可以跨卡比</b>——具体算法见左上角「算法说明」。'
+        : (curSort==='评分'
+          ? '分数是 0–10 的强度分，越高越强；档位先看分数带、再受上限规则约束，所以按分数排序和按档位排序基本一致，偶尔会有交叉。'
+          : (curSort==='规则风险'
+            ? '<b>高</b>＝歧义涉及主赢法、档位被压；<b>中</b>＝有说不清的地方，已按最受限读法裁决、分数另受上限约束；<b>低</b>＝描述与官方规则集一致、不容易被钻空子。默认先看有风险的（高），点上面的按钮反转成先看稳的（低）。'
+            : '评级按 T0→T5 顺序排列，未定档（描述说不清、暂时判不了）排在最后。'))))+
+    '</div></section>';
+  main.innerHTML = h;
+  main.querySelectorAll('.rank-row').forEach(el=>{ el.onclick = ()=>openCard(el.getAttribute('data-name')); });
+  main.querySelectorAll('.rank-row img').forEach(img=>{ bindImgRetry(img, ()=>{ img.style.visibility = 'hidden'; }); });
+}
+
+function renderMain(){
+  if (curSort !== '默认') { renderRank(); return; }
+  const vis = visibleCards();
+  NAV_LIST = vis;   /* 默认视图：分档网格的显示顺序（DATA 已按档位→分数→编号排好） */
+  main.innerHTML = renderScale();
+  ORDER.forEach(t=>{
+    const items = vis.filter(c=>c.tier===t);
+    if(!items.length) return;
+    const sec = document.createElement('section');
+    sec.className = 'tier-sec'; sec.id = 'sec-'+t;
+    let shown = items.length;
+    const h = document.createElement('div');
+    h.className = 'tier-head';
+    const dir = TIER_DIR[t];
+    h.innerHTML = '<h2>'+TIER_NAME[t]+'</h2>'+(dir&&dir[1]!=='—'?'<span class="scale-dir" style="margin:0"><b class="'+dir[0]+'">'+dir[1]+'</b></span>':'')+'<span class="n" data-cnt>'+shown+' 张</span>';
+    sec.appendChild(h);
+    const g = document.createElement('div'); g.className='grid';
+    items.forEach(c=>{
+      const el = document.createElement('div');
+      el.className='card';
+      el.innerHTML =
+        '<div class="thumb">'+auBadge(c)+thumbHTML(c)+'</div>'+
+        '<div class="body"><div class="nm">'+c.name+'</div>'+
+        (curExtra==='边界卡' ? miniBar(c.mcMode) : '')+
+        '<div class="meta"><span class="badge '+t+'">'+TIER_LABEL[t]+'</span>'+
+        (c.stale?'<span class="badge stale">待重跑</span>':'')+
+        (c.boundary?'<span class="badge unc" title="分数区间跨档：档位有一到两成到五成的概率上下浮动，详情页有概率分布">边界</span>':'')+
+        (c.score?('<span class="hp">'+c.score+'<i class="seg" title="'+TIER_LABEL[t]+'·'+segOf(rawS(c))+'（档内 '+Math.round(segPos(rawS(c)))+'%）">'+segOf(rawS(c)).slice(0,1)+(scoreRewritten(c)?'<b style="color:#e05c4a;border:1px solid #e05c4a;border-radius:3px;padding:0 2px;font-size:9px;font-weight:700;margin-left:2px;vertical-align:middle" title="原 S '+(+c.mc.s).toFixed(1)+' 被压到 '+c.score+'（'+(c.mc.score_why||'降档取上沿 / 风险封顶')+'），段位按原 S 算">封</b>':'')+'</i></span>'):'')+
+        (c.hp&&c.hp!=='—'?'<span class="hp">'+c.hp+'</span>':'')+'</div>'+
+        '<div class="why">'+ (c.comment || (c.stub ? '待评级：本卡尚未走评级流程。' : '')) +'</div></div>';
+      el.onclick = ()=>openCard(c.name);
+      const img = el.querySelector('img');
+      if (img) bindImgRetry(img, ()=>{ const ph=document.createElement('div'); ph.className='thumb-ph'; ph.textContent='图缺失'; img.replaceWith(ph); });
+      g.appendChild(el);
+    });
+    sec.appendChild(g);
+    if(curExtra==='边界卡'){
+      const nt = document.createElement('div');
+      nt.className = 'grid-note';
+      nt.textContent = '彩条＝区间抽样下的换档概率（收益区间的不确定度）；硬门槛仍按点估计。';
+      sec.appendChild(nt);
+    }
+    main.appendChild(sec);
+  });
+  if(!vis.length){
+    main.innerHTML = '<div class="empty-tip" style="display:block">没有匹配的卡片，换个关键词或清除筛选试试。</div>';
+  }
+}
+
+function renderSidebar(){
+  const nav = $('#tierNav'); nav.innerHTML='';
+  ORDER.forEach(t=>{
+    const n = DATA.filter(c=>c.tier===t).length;
+    if(!n) return;
+    const li = document.createElement('li');
+    li.innerHTML = '<a href="#sec-'+t+'"><span class="dot" style="background:'+TIER_COLOR[t]+'"></span>'+TIER_NAME[t].split(' · ')[0]+'<span class="cnt">'+n+'</span></a>';
+    nav.appendChild(li);
+  });
+  const facs = ['全部', ...new Set(DATA.map(c=>c.faction).filter(Boolean))];
+  const ff = $('#factionFilter'); ff.innerHTML='';
+  facs.forEach(f=>{
+    const sp = document.createElement('span');
+    sp.className = 'chip'+(f===curFilter?' on':'');
+    sp.textContent = f;
+    sp.onclick = ()=>{ curFilter=f; renderSidebar(); renderMain(); };
+    ff.appendChild(sp);
+  });
+  /* 设计者筛选：这张卡是谁设计的（卡片左上角的小条就是它） */
+  const authors = ['全部', ...AU_ORDER.filter(a=>DATA.some(c=>(c.designer||'未知')===a))];
+  const af = $('#authorFilter'); if (af) {
+    af.innerHTML='';
+    authors.forEach(a=>{
+      const n = DATA.filter(c=>(c.designer||'未知')===a).length;
+      const sp = document.createElement('span');
+      sp.className = 'chip'+(a===curAuthor?' on':'');
+      sp.textContent = a==='全部' ? '全部' : a + ' ' + n;
+      sp.onclick = ()=>{ curAuthor=a; renderSidebar(); renderMain(); };
+      af.appendChild(sp);
+    });
+  }
+  /* 属性筛选：边界卡＝分数区间跨档；有问题＝描述里记了缺口 或 分数复算与档位对不上 */
+  const hasGap = c => (c.r && c.r.defects && c.r.defects.length) || (c.mc && c.mc.gate_mismatch);
+  const extras = [
+    ['全部', '全部', ''],
+    ['边界卡', '边界卡 ' + DATA.filter(c=>c.boundary).length, '分数区间跨了两条档带：档位有一到两成到五成的概率上下浮动。筛这一项时，网格里每张卡的名字下方会显示概率彩条'],
+    ['有问题', '有问题 ' + DATA.filter(hasGap).length, '描述里记了口径缺口（已按最受限读法结算），或分数复算与现行档位对不上；点开卡片看具体条目']
+  ];
+  const ef = $('#extraFilter'); ef.innerHTML='';
+  extras.forEach(([k,label,tip])=>{
+    const sp = document.createElement('span');
+    sp.className = 'chip'+(k===curExtra?' on':'');
+    sp.textContent = label;
+    if (tip) sp.title = tip;
+    sp.onclick = ()=>{ curExtra=k; renderSidebar(); renderMain(); };
+    ef.appendChild(sp);
+  });
+}
+
+/* ---------- 强度分析（重排原文的「导语 + 缩进条目」） ---------- */
+/* 原文用「- 」和缩进表示层级，若直接 pre-wrap 渲染，条目间的空行与缩进会原样变成大片留白。 */
+function strengthHTML(text){
+  const lines = String(text||'').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  let out = '', inList = false;
+  const closeList = () => { if(inList){ out += '</ul>'; inList = false; } };
+  lines.forEach(l => {
+    const m = l.match(/^[-·•]\s*(.+)$/);
+    if(m){
+      if(!inList){ out += '<ul>'; inList = true; }
+      out += '<li>'+esc(m[1])+'</li>';
+    } else {
+      closeList();
+      if(/[：:]$/.test(l) && l.length <= 42) out += '<div class="str-lead">'+esc(l)+'</div>';
+      else out += '<p>'+esc(l)+'</p>';
+    }
+  });
+  closeList();
+  return '<div class="str-body">'+out+'</div>';
+}
+
+/* ---------- 档位词（优/好/中/差/无） ---------- */
+function grade(v){ return v>=7.5?'优':(v>=5.5?'好':(v>=3.5?'中':(v>=1.5?'差':'无'))); }
+const GCLS = {'优':'g-you','好':'g-hao','中':'g-zhong','差':'g-cha','无':'g-wu'};
+function gradeTag(v){ return '<b class="g '+GCLS[grade(v)]+'">'+grade(v)+'</b>'; }
+
+/* ---------- 能力雷达（进攻/防御/控制/过牌/回复/辅助） ---------- */
+const ABIL_META = [
+  ['进攻', '每回合能稳定打出的压力', 'D1'],
+  ['防御', '挨打时能扛住多少', 'D2'],
+  ['爆发', '开局与单回合的爆发力', 'D3'],
+  ['控制', '拆牌、封技、限制对手', 'D4'],
+  ['过牌', '摸牌与换牌的能力', 'D6'],
+  ['稳定', '手气差时的下限', 'D8'],
+  ['辅助', '帮队友的能力', 'D7'],
+  ['回复', '回血、锁血、保命', '推断']
+];
+const ABIL_CORE = ABIL_META;   /* 八条本体轴：诊断、池分析基准、网格排序都走它 */
+function abilTag(v){ return v>=7 ? '强' : (v>=4.5 ? '中' : '弱'); }
+/* labels：轴名（八轴用 ABIL_META，五边形用 CAP_AXES）；marks：额外的门槛圈
+   （{v:数值, color:'#xxx'}，用来标「这条半径就是中/高门槛」，不是参考基线）。
+   wide：五边形的右上/右下两只角比八轴更靠外（72° 一档），四字标签会顶出画布，
+   所以左右各留 30px 空白。 */
+/* opt：{sub:[轴名下方第二行文本]，dot:[每个顶点的颜色]}。
+   数值直接标在轴名下面，读者不必在图与文字之间来回对——
+   同一份数字在两处各写一遍，会被当成两套口径（2026-10-22 用户要求合并）。 */
+function radarSVG(vals, maxV, ref, labels, marks, wide, opt){
+  const O = opt || {};
+  const cx=132, cy=126, R=86, n=vals.length;
+  const x0 = wide ? -30 : 0, vw = wide ? 324 : 264;
+  const LB = labels || ABIL_META.map(x=>x[0]);
+  const ang = i => -Math.PI/2 + i*2*Math.PI/n;
+  const pt = (i,v)=>{ const r=R*Math.max(0,Math.min(maxV,v))/maxV; return [cx+r*Math.cos(ang(i)), cy+r*Math.sin(ang(i))]; };
+  const poly = vs => vs.map((v,i)=>pt(i,v).join(',')).join(' ');
+  let rings='';
+  [0.2,0.4,0.6,0.8,1].forEach(f=>{ rings += '<polygon points="'+poly(Array(n).fill(maxV*f))+'" fill="none" stroke="#2f3440" stroke-width="1"/>'; });
+  let axes='';
+  for(let i=0;i<n;i++){ const p=pt(i,maxV); axes += '<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0]+'" y2="'+p[1]+'" stroke="#2f3440"/>'; }
+  /* 参考圈：全池中位。虚线不填色，只作「这个池的常态长什么样」的对照 */
+  const refPoly = (ref && ref.length===n)
+    ? '<polygon points="'+poly(ref)+'" fill="none" stroke="#8b94a6" stroke-width="1.2" stroke-dasharray="3 3" opacity=".72"/>'
+    : '';
+  /* 门槛圈：与参考圈不同——它标的是「过线在哪」，颜色与门槛档位一致（绿=中、金=高） */
+  const markPoly = (marks && n)
+    ? marks.map(m => '<polygon points="'+poly(Array(n).fill(m.v))+'" fill="none" stroke="'+m.color+'" stroke-width="1.2" stroke-dasharray="2 4" opacity=".85"/>').join('')
+    : '';
+  let labs='';
+  for(let i=0;i<n;i++){
+    const p=pt(i,maxV*1.16);
+    let anchor='middle';
+    if(p[0]>cx+8) anchor='start'; else if(p[0]<cx-8) anchor='end';
+    /* 上方轴的标签往上让一行，下方轴往下让一行，第二行才不会压到图心/出框 */
+    const yb = p[1] + (p[1] < cy ? -3 : 4);
+    const col = (O.dot && O.dot[i]) || '#c6cdd8';
+    labs += '<text x="'+p[0]+'" y="'+yb+'" text-anchor="'+anchor+'" font-size="11.5" font-weight="700" fill="'+col+'">'+LB[i]+'</text>';
+    if(O.sub && O.sub[i] != null)
+      labs += '<text x="'+p[0]+'" y="'+(yb+13)+'" text-anchor="'+anchor+'" font-size="10.5" fill="#8b94a6">'+O.sub[i]+'</text>';
+  }
+  let dots='';
+  vals.forEach((v,i)=>{ const p=pt(i,v);
+    dots += '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+(O.dot&&O.dot[i]?3.8:3.2)+'" fill="'+(O.dot&&O.dot[i]?O.dot[i]:'#e05c4a')+'"/>'; });
+  /* width 用 100% + max-width：SVG 随容器收缩；上限放到 340px，桌面端两张图并排时能填满栏宽、文字更大 */
+  return '<svg viewBox="'+x0+' 0 '+vw+' 254" style="width:100%;max-width:340px;height:auto;display:block;margin:0 auto" role="img" aria-label="能力雷达图">'+
+    rings+axes+refPoly+markPoly+'<polygon points="'+poly(vals)+'" fill="#e05c4a33" stroke="#e05c4a" stroke-width="2"/>'+dots+labs+'</svg>';
+}
+
+function abilityPanel(c){
+  /* 注意：雷达缺失（未定档/缺 D 项）时不能整块 return——规则风险芯片与说明依赖
+     D10/描述歧义，与雷达无关，恰恰是未定档卡最该说清楚的信息。故雷达检查后移到
+     芯片与说明构造完之后（见下方 if(!c.radar) 分支）。 */
+  const meta = [];
+  const lvCls = (v, invert) => invert ? (v==='低'?'ok':(v==='中'?'mid':'bad')) : (v==='高'?'ok':(v==='中'?'mid':'bad'));
+  if(c.d && c.d.d10) meta.push('<span class="rm '+lvCls(c.d.d10,true)+'" title="高＝歧义涉及主赢法、档位被压；中＝有说不清的地方，已按最受限读法裁决、分数另受上限约束；低＝措辞与官方规则集一致、不会被钻空子"><b>规则风险</b>'+esc(c.d.d10)+'</span>');
+  if(c.d && c.d.d11) meta.push('<span class="rm '+lvCls(c.d.d11,false)+'" title="实战里能做的操作空间（选择、时机、调度）"><b>可操作性</b>'+esc(c.d.d11)+'</span>');
+  if(c.dep) meta.push('<span class="rm '+lvCls((c.dep.trim()[0]||''),true)+'" title="需要特定配合件/将池的程度，越低越好"><b>将池依赖</b>'+esc((c.dep.trim()[0]||''))+'</span>');
+  const chips = meta.length ? '<div class="radar-meta">'+meta.join('')+'</div>' : '';
+
+  const diagNote = diagnoseHTML(c);
+
+  /* 三芯片 + 一眼诊断合成的信息块（2026-10-22 用户指正后搬到这里）：
+     原本挂在八轴雷达下方的横排信息带里，但那一带与派生雷达的门槛圈是同一件事说两遍；
+     删掉门槛表后，派生雷达右栏空出来的位置正好放这块真正独立的信息
+     （规则风险／可操作性／将池依赖 ＋ 节奏·依赖·稳健）。
+     派生雷达不存在时（未定档／缺派生项）仍回落到八轴面板下方横排显示。 */
+  const capInfo = (chips || diagNote)
+    ? '<div class="cap-info">'+chips+diagNote+'</div>' : '';
+  /* 派生雷达是否真的画出来了：信息块要跟着它走，没有它就得回落到八轴面板下方。
+     判据不能写成「capInfo 非空」——那只说明有信息可显示，不说明有地方放。 */
+  const hasCapRadar = !!(c.cap && CAP_AXES.length && c.tier !== 'undecided');
+
+  /* 规则风险逐卡说明：只给「非低」的卡（低不写——无就不用说了）。
+     风险来源只有两类：
+       ① 措辞歧义 —— 描述歧义字段为「有 —— …」，正文即歧义点
+       ② 规则层缺口 —— R层有非低项 / 缺陷清单非空（机制不在规则集内、变量未定义等）
+     ⚠ 「描述歧义 = 无 —— …」那句讲的是**为什么不构成歧义**，
+       绝不能拿来当「为什么记作高/中」的理由，否则会印出
+       「因为描述没问题，所以高风险」这种自相矛盾（安洁莉娜 #45 曾因此出现）。
+       所以「无」一律不进说明，只从规则层取；规则层也干净就不出说明。 */
+  let riskNote = '';
+  if(c.d && c.d.d10 && c.d.d10 !== '低'){
+    const av = (c.amb || '').trim();
+    const hasAmb = av.indexOf('有') === 0;
+    const defects = (c.r && c.r.defects) || [];
+    const rBad = ['r1','r2','r3','r4','r5']
+      .filter(k => c.r && c.r[k] && c.r[k] !== '低')
+      .map(k => 'R' + k.slice(1) + '=' + c.r[k]);
+    let dn = '';
+    if(hasAmb){
+      /* 歧义全文已在「描述有没有歧义」里，这里不再复述一遍，只保留性质标注做交叉引用 */
+      const m = av.match(/^有(（[^）]*）)?\s*——\s*([\s\S]*)$/);
+      const tag = m && m[1] ? m[1].slice(1, -1) : '';
+      dn = '见「描述有没有歧义」' + (tag ? '（' + tag + '）' : '');
+    }else if(defects.length || rBad.length){
+      const parts = [];
+      if(rBad.length) parts.push('规则层判定 ' + rBad.join('、'));
+      if(defects.length) parts.push('缺陷清单：' + defects.join('；'));
+      dn = parts.join('；') + '。已按最受限读法裁决，分数另受上限约束。';
+    }
+    if(dn) riskNote = '<div class="amb-note"><b>规则风险说明（为什么记作「' + esc(c.d.d10) + '」）：</b>'
+      + esc(dn).split('\n').map(l => l.trim()).filter(Boolean).join('；') + '</div>';
+  }
+
+  /* 未定档/缺 D 项：没有雷达轴，但仍要把「规则层为什么进不了档」说清楚 */
+  if(!c.radar) return {chip:'', html:'<div class="radar-note">这张卡没有能力雷达数据（未定档或缺 D 项评分），下面只给规则层结论。</div>'+chips+riskNote};
+
+  const raw = ABIL_META.map(x => (c.radarPct && c.radarPct[x[0]] != null) ? c.radarPct[x[0]] : 0);
+  const pct = ABIL_META.map(x => abilPct(c, x[0]));
+
+  /* 上手→精通：只给原文档位，不折算成 0–10 的分数——
+     本榜单精通档（取自详表维度B/D 录入值）全池只有 1/2/3 三个取值、98% 挤在 1 档与 2 档，78% 的卡上手即精通；
+     原来的算法还掺了爆发轴，导致与集火相关 0.82——那是在给同一件事打两个分。 */
+  let masLine = '';
+  if (c.tierUp && c.tierMas) {
+    const un = parseInt(String(c.tierUp).replace(/\D/g, ''), 10);
+    const mn = parseInt(String(c.tierMas).replace(/\D/g, ''), 10);
+    const gain = (isNaN(un) || isNaN(mn)) ? 0 : un - mn;   /* 档位数字越小越强：T3→T2 是涨 1 档 */
+    masLine = '<i class="mas" title="熟练之后能到哪一档（上手档位 → 精通档位）。全池只有 20% 的卡有成长空间，所以这里给原文事实，不折算成 0–10 的分数——那是假精度。">上手→精通 '
+      + c.tierUp + ' → ' + c.tierMas
+      + (gain > 0 ? '（操作能涨 ' + gain + ' 档）' : '（上手即精通）') + '</i>';
+  }
+  /* 推荐身份：把评级原文里写下的「反贼/忠臣优」「主公中」直接翻成一句人话。
+     分数回答「适应性有多好」，推荐回答「那到底该坐哪」——这两件事雷达画不出来，所以留在图下面。 */
+  const fmtPick = p => {
+    if (!p) return '';
+    const parts = [];
+    if (p.all) parts.push('全身份皆可');
+    else if (p.best && p.best.length) parts.push('推荐：' + p.best.join('、'));
+    if (p.avoid && p.avoid.length) parts.push('避开：' + p.avoid.join('、'));
+    return parts.length ? '<i class="id-pick">' + parts.join('　') + '</i>' : '';
+  };
+
+  /* 派生雷达：六项派生指标全画在这一张图上，数值直接写在轴标签下方
+     （与主雷达一致：轴长＝离各自门槛多远，轴下「数值 · 分位」＝精确读数），
+     不另开表格——省空间、且和八轴雷达同一套读法。 */
+  const CAP_INVERT = (RULES.capability && RULES.capability.invert) || [];
+  let capRadar = '', capThTxt = '';
+  if(c.cap && CAP_AXES.length && c.tier !== 'undecided'){
+    const cv = CAP_AXES.map(x => capAxisPct(c, x[1]));
+    /* 顶点颜色＝等级：高绿 / 中金 / 低红；嘲讽在 CAP_INVERT 里，越高越招打所以反过来 */
+    const dot = CAP_AXES.map(x => {
+      const lv = c.cap[x[1] + 'Lv'];
+      if (lv == null) return '#8b94a6';
+      const inv = CAP_INVERT.indexOf(x[1]) >= 0;
+      if (lv === '中') return '#e8a33d';
+      const good = inv ? (lv === '低') : (lv === '高');
+      return good ? '#4caf7d' : '#e05c4a';
+    });
+    /* 各轴门槛绝对值（中／高）：th = [高门槛, 中门槛]。
+       明面上不列表（雷达上的绿圈／金圈已经画了同一件事，列表＝说两遍），
+       但绝对值口径要留在折叠说明里可查——「圈在半径 50%」只有知道绝对值才换算得回去。 */
+    capThTxt = CAP_AXES.map(x => {
+      const t = (RULES.capability.th[x[1]] || []);
+      return x[0] + ' ' + (t.length ? t.join('／') : '—');
+    }).join('／');
+    const pick = fmtPick(c.identPick);
+    /* 数值直接写在雷达轴标签下方（与主雷达一致）：轴长＝离门槛多远，轴下「数值 · 分位」＝精确读数，不另开表格。
+       分位是百分比性质，跟八轴两张图一样带 %（否则读者会以为 57 是绝对值）。 */
+    const sub = CAP_AXES.map(x => {
+      const v = c.cap[x[1]], q = capPct(c, x[1]);
+      if (v == null) return '未评';
+      return v.toFixed(1) + ' · ' + q + '%';
+    });
+    /* 图例（门槛圈＋等级点）说明的是图本身，跟上手→精通／推荐一起放在图的紧下方，
+       填掉原先雷达底部那块空白，不再挤在右栏顶端（右栏只说芯片与一眼诊断）。 */
+    const lgBlock = '<div class="cap-lg">'
+      + '<div class="cap-lg-row"><i class="ln k-mid"></i>中门槛 '+CAP_ANCHOR.mid+'%<i class="ln k-hi"></i>高门槛 '+CAP_ANCHOR.high+'%</div>'
+      + '<div class="cap-lg-row"><i class="cap-dot" style="background:#4caf7d"></i>高<i class="cap-dot" style="background:#e8a33d"></i>中<i class="cap-dot" style="background:#e05c4a"></i>低<span class="lv-note">（嘲讽反过来）</span></div>'
+      + '</div>';
+    capRadar = '<div class="rb-cap">'
+      + '<div class="rb">'
+        + '<div class="rb-h"><span>派生雷达</span><em>轴长＝离各自门槛多远</em></div>'
+        + '<div class="rb-body">'+radarSVG(cv, 100, null, CAP_AXES.map(x => x[0]), [
+            {v: CAP_ANCHOR.mid, color: '#4caf7d'},
+            {v: CAP_ANCHOR.high, color: '#e8a33d'}
+          ], true, {sub: sub, dot: dot})+'</div>'
+        + '<div class="cap-foot">'
+          + (c.tierUp && c.tierMas ? masLine : '')
+          + (pick ? '<div class="cap-pick">'+pick+'</div>' : '')
+          + lgBlock
+        + '</div>'
+      + '</div>'
+      + (capInfo ? '<div class="cap-side">' + capInfo + '</div>' : '')
+      + '</div>';
+    /* 上手→精通 与 推荐身份 从右栏顶端挪到图下方（2026-10-22 用户指正：图底留白、右栏拥挤） */
+  }
+
+  /* 能力补齐（派生指标）：压制组 + 结构组。公式固定、由雷达同一套轴值与 D 项派生，
+     只作展示，不改档、不参与排序。
+     颜色按「这一项高是好事还是坏事」定，不按数值大小定——
+     嘲讽越高越容易被集火，所以要倒过来（高＝红）。 */
+  let capNote = '';
+  if(c.cap && c.tier !== 'undecided'){
+    const cs = capStat();
+    const medTxt = '本批中位：集火 '+cs.ff.med.toFixed(1)+'／破局 '+cs.bs.med.toFixed(1)
+      + '／泛用性 '+cs.ver.med.toFixed(1)+'／协同上限 '+cs.ceil.med.toFixed(1)+'／嘲讽 '+cs.taunt.med.toFixed(1)
+      + '／身份适应性 '+(isNaN(cs.ident.med)?'—':cs.ident.med.toFixed(1));
+    const capHow = foldParts('公式与分位怎么算', '<p>公式：集火＝0.50×爆发＋0.30×进攻＋0.20×控制；破局＝0.45×爆发＋0.30×回复＋0.25×防御；嘲讽＝0.45×进攻＋0.25×爆发＋0.30×辅助（越高越招打、所以标红）；泛用性＝0.40×稳定＋0.35×裸装＋0.25×防御；协同上限＝0.45×配合＋0.35×辅助＋0.20×过牌。</p>'
+      + '<p>「高/中/低」是绝对值门槛，<b>池内 x 分位</b> 是它在本批 '+DATA.length+' 张里的名次（60 分位＝比六成卡高，90 分位＝比九成卡高）——两者一起看：门槛回答「够不够强」，名次回答「在这批里算不算突出」。'+medTxt+'。不参与档位与排序。</p>'
+      + '<p><b>这几项是同一幅画的几个切面，不是七个独立维度</b>：集火·破局·泛用性·协同上限·嘲讽互相相关 0.74–0.86（本榜单评分数据内部观测，非实战实测），因为强卡的各项天然都高——这个光环消不掉，也不该强行消掉。所以看单项数值不如看<b>池内分位最高的那一项</b>：那才是这张卡在这批里真正突出的地方。</p>'
+      + '<p><b>场景组</b>（身份适应性）是例外，与上面各项只相关 0.11–0.48，因为它用的不是雷达八轴，而是把评级原文里已经写下的身份结论抽成数值：身份适应性＝0.7×已评身份的均值 ＋ 0.3×（已评身份数÷4）×10，写「只适合反贼」就是比「全身份都行」低。原文里没写身份的卡显示「未评」，不填中位充数。</p>'
+      + '<p><b>上手→精通不打分</b>：熟练档位全池只有三个取值、八成的卡上手即精通，折算成 0–10 的分数是假精度，所以直接写原文事实（上手 T3 → 精通 T2）。</p>'
+      + '<p><b>图怎么读</b>：雷达轴长＝离各自门槛多远，每条轴下方直接写「数值 · 池内分位」。顶点颜色＝等级：高绿／中金／低红，嘲讽反过来。六项的门槛各不相同（中／高绝对值：'+capThTxt+'），所以<b>绿圈＝各自的中门槛、金圈＝各自的高门槛</b>，同一半径不代表同一分数，只表示「离自己的门槛有多远」。</p>');
+    /* 标题行给结论：六项里分位最高与最低分别是哪两个，读者不必逐项横向比。
+       用「最高/最低」而不是「最好/最差」——嘲讽分位高是坏事，中性的名次说法才不会误导。 */
+    const qs = [['集火','ff'],['破局','bs'],['泛用性','ver'],['协同上限','ceil'],['嘲讽','taunt'],
+                ['身份适应性','ident']]
+      .map(p => ({ n: p[0], q: capPct(c, p[1]) })).filter(x => x.q != null);
+    let capVd = '';
+    if(qs.length >= 2){
+      const sorted = qs.slice().sort((a, b) => b.q - a.q);
+      const hi = sorted[0], lo = sorted[sorted.length - 1];
+      capVd = (hi.q - lo.q >= 20)
+        ? '<span class="hd-vd">最高 <b>'+hi.n+'</b>（'+hi.q+' 分位）· 最低 <b>'+lo.n+'</b>（'+lo.q+' 分位）</span>'
+        : '<span class="hd-vd">六项分位接近（'+lo.q+'–'+hi.q+'）</span>';
+    }
+    capNote = '<div class="cap-note"><div class="sub-hd"><b>能力补齐（派生指标，不改档）：</b>'+capVd+capHow.chip+'</div>'
+      + capRadar
+      + capHow.body
+      + '</div>';
+  }
+
+  /* 场景切片：位置适应性／小范围作战／后置位这三项**没有可算的数据**
+     （评级原文里提到单挑的 4 张、2v2 25 张、斗地主 7 张、先手 4 张、后手 2 张——全批 110 张），
+     硬填一个中位等于给 96% 的卡造同一个假数据。所以这里只把维度B 原文里提到场景的句子原样列出：
+     写了就说，没写就写「未提及」。要变成分数，得先给 110 张补一套统一格式的场景切片。 */
+  let scnNote = '';
+  if(c.scn){
+    const groups = [['单挑 / 2v2', c.scn.small], ['位置（斗地主·先手后手）', c.scn.pos], ['身份', c.scn.ident]];
+    const nHit = groups.filter(g => (g[1] || []).length).length;
+    const rows = groups.map(g => '<div class="scn-row"><span class="scn-n">'+g[0]+'</span>'
+      + '<span class="scn-v'+((g[1]||[]).length?'':' na')+'">'+((g[1]||[]).length ? esc(g[1].join('；')) : '未提及')+'</span></div>').join('');
+    const scnHow = foldParts('为什么不打分', '<p>位置适应性／小范围作战／后置位这三项<b>不打分</b>：评级原文里提到单挑的只有 4 张、2v2 25 张、斗地主 7 张、先手 4 张、后手 2 张（全批 '+DATA.length+' 张），「将池基准」与「使用场景」两栏整表为空。没有证据却给一个分数，就是拿缺省值冒充数据——那根轴会 96% 的卡都落在同一个点上，看着像有信息，其实没有。</p><p>所以这里只做一件事：把原文里写了的句子原样列出来。要让它变成分数，得先给 110 张补一套统一格式的场景切片（每个模式一行、等级词统一：优／中／弱）。</p>');
+    scnNote = '<div class="scn-note"><div class="sub-hd"><b>场景切片（评级原文）：</b>'
+      + '<span class="hd-vd">'+nHit+' / 3 类场景有记录</span>'+scnHow.chip+'</div>'+rows+scnHow.body+'</div>';
+  }
+
+  /* 阶段画像：这张卡的强度在什么时候兑现。三段是同一把 0–100 的尺子（本批排名分位），可横向比。 */
+  let phNote = '';
+  if(c.ph && c.tier !== 'undecided'){
+    const segs = [['开局','open','第 1–2 轮，手牌还少：起手能不能站住（爆发·进攻·找牌为主，稳定兜底）'],
+                  ['中期','mid','3–6 轮，人人都滚起来了：能不能持续产出并配合（过牌·辅助·控制为主）'],
+                  ['残局','late','人少血低：能不能活到最后一击并收掉（防御·回复·爆发为主）']];
+    const vs = segs.map(s => c.ph[s[1]]);
+    const mx = Math.max.apply(null, vs), mn = Math.min.apply(null, vs);
+    const gap = mx - mn;
+    const rows = segs.map(([n,k,tip],i)=>{
+      const v = vs[i];
+      return '<div class="ph-row'+(v===mx && gap >= 10 ?' ph-top':'')+'" title="'+tip+'">'
+        + '<span class="ph-n">'+n+'</span>'
+        + '<span class="ph-bar"><i style="width:'+Math.max(0,Math.min(100,v)).toFixed(1)+'%"></i></span>'
+        + '<span class="ph-v">'+Math.round(v)+'</span></div>';
+    }).join('');
+    /* 结论放标题行（「阶段画像（哪一段最强）：最强在中期…」），条形只是它的证据。
+       之前结论在三条条形之后，读者得先把三个数读完才知道结论。 */
+    const verdict = gap < 10
+      ? '三段几乎持平（差 '+Math.round(gap)+'）——<b>什么时候都能打</b>，没有明显真空期'
+      : '最强在<b>'+segs[vs.indexOf(mx)][0]+'</b>，最弱在'+segs[vs.indexOf(mn)][0]+'（差 '+Math.round(gap)+'）';
+    const phHow = foldParts('三段的位置怎么比', '<p>三段是<b>本批内的位置</b>：50＝全池中等，70＝明显靠前，30＝明显靠后；三段同一把尺子，可以直接比。开局看爆发·进攻·找牌，中期看过牌·辅助·控制，残局看防御·回复·爆发。换一批卡重算，50 的位置会变。</p>');
+    phNote = '<div class="ph-note"><div class="sub-hd"><b>阶段画像（哪一段最强）：</b>'
+      + '<span class="hd-vd">'+verdict+'</span>'+phHow.chip+'</div>'+rows
+      + phHow.body
+      + '</div>';
+  }
+
+  const medArr = ABIL_META.map(x => axisMedian()[x[0]] || 0);
+  /* 拿手／短板直接标在雷达顶点与轴名上（金＝池内名次最高、灰＝最低），
+     不再另起一行文字——图上一处、文字一处，读者会以为是两个口径。 */
+  const hl = diagAxes(c);
+  const dot8 = ABIL_META.map((x, i) => i === hl.best ? '#e8a33d' : (i === hl.worst ? '#8b94a6' : '#e05c4a'));
+
+  const howTo = foldParts('两张图怎么读', '<p>第一张＝<b>算法评分</b>：八条轴各自取详表的一个评分项——进攻＝主赢法强度、防御＝生存、爆发＝单回合爆发、控制＝限制对手、过牌＝摸牌换牌、辅助＝帮队友、稳定＝下限（另含少量规则确定性）、回复＝评分表里的回复判定。取到原始分后按各轴的实用量程折成 0–100%，轴名下面就是这个值，所以<b>可以跨卡比</b>、<b>不能跨轴比数值</b>（形状才是重点）。</p><p><b>灰虚线＝全池中位</b>：八条轴各自取中位数连成的形状，代表「这批卡的常态」。<b>金点＝这张卡的拿手</b>（这根轴在池里名次最高）、<b>灰点＝短板</b>（名次最低）——直接看颜色就知道强弱项在哪，不必再去比对八个数字。</p><p>第二张＝<b>同批名次</b>（0%＝这批最低，100%＝最高，50%＝正好在中间），轴名下面就是名次。用名次而不是百分点差，是因为八轴的基数天生不同：辅助与回复的中位只有 12%，进攻与爆发的中位在 50–60%，拿百分点互相比会得出假结论。</p><p>派生六项（集火·破局·泛用性·协同上限·嘲讽·身份适应性）不在这两张图里，见下方「能力补齐」。判断强弱看档位与分数。</p>');
+  return {chip: howTo.chip, html: '<div class="rb-pair">'+
+      '<div class="rb">'+
+        '<div class="rb-h"><span>算法评分</span><em>轴越长＝这项越强，可跨卡比</em></div>'+
+        '<div class="rb-body">'+radarSVG(raw, 100, medArr, null, null, false, {sub: raw.map(v => v + '%'), dot: dot8})+'</div>'+
+      '</div>'+
+      '<div class="rb">'+
+        '<div class="rb-h"><span>相对位置</span><em>本批 112 张里的名次：0% 最低 · 100% 最高</em></div>'+
+        '<div class="rb-body">'+radarSVG(pct, 100, null, null, null, false, {sub: pct.map(v => v + '%'), dot: dot8})+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="rb-lg rb-lg-shared"><i></i>这张卡<i class="dash"></i>全池中位（八轴各自的中位数）<i class="best"></i>拿手<i class="worst"></i>短板<span class="rb-lg-note">· 两图通用：左图看数值高低、右图看批次名次，颜色与形状含义一致</span></div>'+
+    /* 三芯片 + 一眼诊断已搬到「能力补齐」的派生雷达右栏（与门槛圈同一处，避免同一数据说两遍）。
+       只有在派生雷达不存在时（未定档／缺派生项）才回落到这里横排显示。 */
+    (hasCapRadar ? '' : '<div class="rb-info">'+chips+diagNote+'</div>')+
+    howTo.body+riskNote+capNote+scnNote+phNote};
+}
+
+/* 相对位置 = 本批名次百分位（比它低的卡占这个比例）。
+   不用「按本批最低/最高线性拉伸」：八根轴的量程宽度都在 70 上下、下限又都贴着 0，
+   (v−min)/(max−min) 几乎等于全体乘同一个系数，画出来与算法评分同形（基于本榜单评分数据内部观测，平均相关 0.95），
+   看不出「相对谁强」。名次是逐轴按分布换算，才能反映这张卡在本批里的真实排位。 */
+let ABIL_CACHE = null;
+function abilCache(){
+  if(ABIL_CACHE) return ABIL_CACHE;
+  const cache = {};
+  ABIL_CORE.forEach(x=>{
+    const vs = DATA.map(d=>d.radarPct && d.radarPct[x[0]]).filter(v=>v!=null).sort((a,b)=>a-b);
+    cache[x[0]] = vs.length > 1 ? vs : null;
+  });
+  ABIL_CACHE = cache; return cache;
+}
+function abilPct(c,k){
+  const arr = abilCache()[k];
+  const v = c.radarPct && c.radarPct[k];
+  if(!arr || v==null) return 0;
+  let lo = 0, eq = 0;
+  for(const x of arr){ if(x < v) lo++; else if(x === v) eq++; else break; }
+  /* 并列取区间中点：lo 张比它低、(eq-1)/2 张与它同级，再按 n-1 归一到 0–100 */
+  return Math.max(0, Math.min(100, Math.round((lo + (eq - 1) / 2) / (arr.length - 1) * 100)));
+}
+
+/* ---------- 一眼诊断（现算，只陈述分布事实） ----------
+   拿手 / 短板：本卡各轴 vs 全池中位；
+   节奏：阶段三线的最高段与最低段差 ≥1.5 才提；
+   结构：泛用性/协同上限记「低」、嘲讽记「高」的项；
+   依赖与稳健：将池依赖高、边界卡。
+   不写主观评价（"该削""太弱"），那些在档位与评语里。 */
+let AXIS_MED = null;
+function axisMedian(){
+  if(AXIS_MED) return AXIS_MED;
+  const o = {};
+  ABIL_META.forEach(x => {
+    const vs = DATA.map(d => d.radarPct && d.radarPct[x[0]]).filter(v => v != null).sort((a, b) => a - b);
+    o[x[0]] = vs.length ? vs[Math.floor(vs.length / 2)] : 0;
+  });
+  AXIS_MED = o; return o;
+}
+/* 能力补齐的池内坐标：同一个指标在本批 110 张里排第几、中位是多少。
+   绝对门槛（高/中/低）回答「够不够强」，池内百分位回答「在这批里算不算突出」——
+   两个都给，读者才不用猜门槛是谁定的。 */
+/* 定位五项（能力补齐）在雷达里的轴：顺序、门槛都读 rules.json。
+   刻度不按本批极值，也不按分数本身——按各指标自己的固定门槛折算：
+   中门槛恒落 50%、高门槛恒落 75%，所以圈上的位置跨卡可比、换一批卡也不变。
+   代价是同一半径不代表同一分数（五项门槛数值不同），这一点必须写在图例里。 */
+const CAP_AXES = (RULES.capability && RULES.capability.axis_map && RULES.capability.axis_map.axes) || [];
+const CAP_ANCHOR = (RULES.capability && RULES.capability.anchor_pct) || { mid: 50, high: 75 };
+function capAxisPct(c, k){
+  if(!c.cap || c.cap[k] == null) return 0;
+  const th = (RULES.capability && RULES.capability.th) ? RULES.capability.th[k] : null;
+  if(!th) return 0;
+  const mid = th[1], hi = th[0];                     /* th = [高门槛, 中门槛] */
+  if(hi === mid) return CAP_ANCHOR.mid;
+  const p = CAP_ANCHOR.mid + (c.cap[k] - mid) * (CAP_ANCHOR.high - CAP_ANCHOR.mid) / (hi - mid);
+  return Math.max(0, Math.min(100, Math.round(p)));
+}
+let CAP_STAT = null;
+function capStat(){
+  if(CAP_STAT) return CAP_STAT;
+  const o = {};
+  ['ff','bs','ver','ceil','taunt','ident'].forEach(k => {
+    const arr = DATA.map(c => c.cap && c.cap[k]).filter(v => v != null).sort((a, b) => a - b);
+    o[k] = { arr: arr, med: arr.length ? pvQ(arr, .5) : NaN };
+  });
+  CAP_STAT = o; return o;
+}
+function capPct(c, k){
+  const s = capStat()[k];
+  if(!s || !s.arr.length || !c.cap) return null;
+  const v = c.cap[k];
+  /* 未评 ≠ 0 分位：缺数据的项不进名次比较，否则「身份适应性」会被当成「最低（0 分位）」
+     写进标题行——那是把「没有结论」说成「排最后」，池内 11 张卡会因此被误读。 */
+  if(v == null) return null;
+  let lo = 0, eq = 0;
+  for(const x of s.arr){ if(x < v) lo++; else if(x === v) eq++; else break; }
+  return Math.round((lo + (eq - 1) / 2) / Math.max(1, s.arr.length - 1) * 100);
+}
+/* 拿手 / 短板：按「这根轴在池里的名次」比，不按百分点差（名次才是跨轴可比的尺子）。
+   返回 ABIL_CORE 的下标，八轴雷达按它给顶点着色；一眼诊断不再另起一行重复说。 */
+function diagAxes(c){
+  if(!c.radarPct) return {best:-1, worst:-1};
+  const q = ABIL_CORE.map(x => abilPct(c, x[0]));
+  let bi = 0, wi = 0;
+  q.forEach((v,i)=>{ if(v > q[bi]) bi = i; if(v < q[wi]) wi = i; });
+  return {best: bi, worst: (bi === wi ? -1 : wi)};
+}
+function diagnoseHTML(c){
+  if(!c.radarPct || c.tier === 'undecided') return '';
+  const arr = ABIL_CORE.map(x => ({ k: x[0], v: c.radarPct[x[0]] || 0 }));
+  /* 拿手 / 短板按「这根轴在池里的名次」比，不按百分点差。
+     八轴的基数天生不同：辅助与回复的中位只有 12%，进攻与爆发的中位在 50–60%。
+     用百分点差的话，「辅助 45%」凭空高出中位 32 点，看着像招牌能力——
+     可 45% 的辅助在 110 张里只是中上；而「稳定 42%」只高出 12 点看着平庸，
+     实际它在池里排到前 15%。名次差才是跨轴可比的尺子（与阶段画像同口径），
+     50 是常态线，+18 就是「比常态高 18 个名次位」。 */
+  const dev = arr.map(x => ({ k: x.k, v: x.v, q: abilPct(c, x.k), d: abilPct(c, x.k) - 50 }));
+  const up = dev.filter(x => x.d >= 0).sort((a, b) => b.d - a.d)[0];
+  const best = up || dev.slice().sort((a, b) => b.d - a.d)[0];   // 无达标项时退回「相对最好」
+  const down = dev.slice().sort((a, b) => a.d - b.d)[0];
+  /* 拿手／短板不在这里写：八轴雷达已经用金点／灰点标在对应轴上，
+     同一句结论两处各说一遍，读者会以为是两个口径（2026-10-22 合并进雷达图）。 */
+  /* 结构行同样删掉：能力补齐的标题行已经写了「最低 X（Y 分位）」，这里再说一遍是重复的。 */
+
+  /* 三格速览：节奏／依赖／稳健 每项都给结论（不触发就明说"正常"），
+     比"只在出问题时列一行"更好扫——读者第一眼能确认这三项各自的状态。
+     拿手／短板已在八轴雷达上用金点／灰点标出，不在这里重复。 */
+  let cellPh = { tone: 'ok', txt: '不偏科' };
+  if(c.ph){
+    const seg = [['开局', c.ph.open], ['中期', c.ph.mid], ['残局', c.ph.late]].sort((a, b) => b[1] - a[1]);
+    const d = seg[0][1] - seg[2][1];
+    if(d >= 20) cellPh = { tone: 'warn', txt: '偏「' + seg[0][0] + '」，' + seg[2][0] + '最弱（' + Math.round(seg[2][1]) + ' vs ' + Math.round(seg[0][1]) + '）' };
+  }
+  const dep = (c.dep || '').trim().charAt(0) || '—';
+  const cellDep = dep === '高'
+    ? { tone: 'bad', txt: '高——配合件不在场时该结论不成立' }
+    : { tone: 'ok', txt: (dep === '—' ? '未评' : '不高（' + dep + '）') };
+  const cellSt = (c.boundary)
+    ? { tone: 'warn', txt: '区间跨档，换档概率 ' + Math.round(((c.mcMode && c.mcMode.p_diff) || 0) * 100) + '%' }
+    : { tone: 'ok', txt: '区间不跨档，结论稳' };
+  const cell = (lb, o) => '<div class="dc ' + o.tone + '"><i>' + lb + '</i><span>' + o.txt + '</span></div>';
+  /* 横排三格：拿手／短板由雷达图例说明，这里不重复 */
+  return '<div class="diag diag-inline"><span class="diag-lb">一眼诊断</span><div class="diag-g">'
+    + cell('节奏', cellPh) + cell('依赖', cellDep) + cell('稳健', cellSt) + '</div></div>';
+}
+
+/* ---------- 描述有没有歧义 ---------- */
+function ambHTML(c){
+  const v = (c.amb || '').trim();
+  const has = v.indexOf('有') === 0;
+  /* 结论已由标题行「有歧义」芯片给出，正文不再以「有」开头 */
+  const body = has ? v.replace(/^有\s*(——\s*)?/, '')
+                   : (v.replace(/^无\s*——\s*/, '') || '描述写得清楚，照字面就能打，不需要额外约定');
+  /* 续行（多种读法）逐条换行展示：「·」开头的条目缩进，① ② 标题行顶格 */
+  const html = esc(body).split('\n').map(l => {
+    const t = l.trim();
+    return (t.indexOf('·') === 0 ? '&nbsp;&nbsp;&nbsp;&nbsp;' : '') + t;
+  }).join('<br>');
+  /* 「无」= 没有*需要另行约定*的歧义；已裁决的口径缺口记在 R层缺陷清单，体现为 规则风险=中。
+     两者不写在一起，读者会看到「无歧义」+「规则风险 中」自相矛盾。 */
+  const defects = (c.r && c.r.defects) || [];
+  const d10 = c.d && c.d.d10;
+  const hasGap = !has && defects.length > 0;
+  const list = defects.length ? esc(defects.join('；')) : '';
+  /* 缺口属于「实现环境」而不是「读法」时单独点明，避免把面杀能打的东西说成措辞不清 */
+  const envIssue = defects.some(x => /线上|无名杀|实现未定义|面杀/.test(x));
+  const envNote = envIssue ? '这条属于<b>实现环境</b>（面杀照原文可执行，线上/无名杀环境没有对应实现），不是读法歧义。' : '';
+  /* 「无」只描述「能不能照原文打」；记录里的缺口另起一行，不塞进同一个色块 */
+  const gapNote = hasGap
+    ? '<div class="amb-note"><b>记录里的缺口（'+defects.length+' 条）：</b>'+list+'。已按最受限读法结算，'+(d10 && d10 !== '低' ? '所以「规则风险」记作「'+esc(d10)+'」、分数另受上限约束。' : '未影响定档。')+envNote+'</div>'
+    : '';
+  const cls = has ? 'bad' : 'ok';
+  /* 结论（有/无歧义）已经挂在面板标题行，这里不再重复一个 tag，只留带底色的说明块 */
+  return '<div class="amb '+cls+'"><div class="ambtxt">'+html+'</div></div>'+gapNote;
+}
+
+/* ---------- 详情页 ---------- */
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* 图片加载自动重试：打开页面时成批图片请求里偶发几条被拒（隧道/本地服务瞬时抽风），
+   不重试就会永久变成「图缺失」占位，必须手动刷新才好。这里失败后自动重取，带缓存戳破缓存。 */
+function bindImgRetry(img, onFail){
+  if (img.__retryBound) return;      /* 同一 img 重复绑定只生效一次（灯箱反复开同一张图） */
+  img.__retryBound = true;
+  let tries = 0;
+  img.addEventListener('error', ()=>{
+    if (tries >= 3){ if (onFail) onFail(); return; }
+    tries++;
+    const base = (img.getAttribute('src') || '').split('?')[0];
+    setTimeout(()=>{ img.src = base + '?_r=' + tries + '_' + Date.now(); }, 900 * tries);
+  });
+}
+
+function rawSkillList(c){
+  if(c.rawSkills && c.rawSkills.length) return c.rawSkills.map(s=>({name:s.name, cat:s.cat||'', desc:s.desc||''}));
+  return (c.skillBlocks||[]).map(b=>({name:b.name, cat:'', desc:'（'+b.desc+'）'}));
+}
+function figSkills(c){
+  const list = rawSkillList(c);
+  if(!list.length) return '';
+  const items = list.map(s=>'<div class="fs-item">'+
+      '<div class="fs-name">【'+esc(s.name||'（无技能名）')+'】</div>'+
+      (s.cat?'<div class="fs-cat">'+esc(s.cat)+'</div>':'')+
+      '<div class="fs-desc">'+esc(s.desc)+'</div></div>').join('');
+  return '<div class="figskills"><div class="fs-head"><span>技能原文</span>'+
+    '<button id="copySkillBtn" type="button">复制</button></div><div class="fs-body">'+items+'</div></div>';
+}
+function fallbackCopy(txt){
+  const ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+}
+function dBars(c){
+  const d = c.d||{};
+  const names = {d1:'收益期望',d2:'防御生存',d3:'先手压制',d4:'控制拆解',d5:'启动速度',d6:'续航换牌',d7:'辅助团队',d8:'方差下限'};
+  const MAX = 8;   /* 进度条按 0–8 显示：D 分理论 0–10，本批实际落在 2–8 */
+  const CAT = {高:8, 中:5, 低:2};
+  const bar = (label, val, txt, low) => '<div class="dbar"><span class="lb">'+label+'</span>'+
+    '<div class="track"><div class="fill'+(low?' low':'')+'" style="width:'+Math.min(100, Math.max(0, val/MAX*100))+'%"></div></div>'+
+    '<span class="val">'+gradeTag(val)+'<i class="abnum">'+txt+'</i>'+(low?' <span class="lc">低置信</span>':'')+'</span></div>';
+  let h = '<div class="dnote">每项先看汉字档位：<b>优 ≥7.5 ／ 好 ≥5.5 ／ 中 ≥3.5 ／ 差 ≥1.5 ／ 无 &lt;1.5</b>，后面的小字是原始分（0–10，本批实际落在 1–8，进度条按 0–8 显示）。'+
+    '<b>分数越高这一项越强</b>——例如「方差下限」越高代表发挥越稳、越不容易大起大落。'+
+    '<b>「低置信」</b>= 没有实测数据（没跑过稻草人、也没有面杀样本），按同类卡估算，可能上下浮动。'+
+    '高／中／低 三档按 8／5／2 折算条长；将池依赖度条越长 = 越依赖特定将池或配合件。'+
+    '<br><b>八条能力条各看什么</b>：收益期望（每回合能多赚多少）/ 防御生存（挨打扛不扛得住）/ 先手压制（开局压力）/ 控制拆解（拆牌、封技）/ 启动速度 / 续航换牌（摸牌与续力）/ 辅助团队（帮队友）/ 方差下限（越稳越高，手气差时不至于崩）。</div>';
+  h += '<div class="dbars">';
+  for(let i=1;i<=8;i++){
+    const k='d'+i, o=d[k];
+    if(!o) continue;
+    const low = o.note && o.note.indexOf('低置信')>=0;
+    h += bar(names[k], o.v, o.v.toFixed(1), low);
+  }
+  if(d.d9){
+    h += bar('协同·裸装', d.d9.a, d.d9.a.toFixed(1));
+    h += bar('协同·配合', d.d9.b, d.d9.b.toFixed(1));
+  }
+  h += '</div>';
+  const extra = [];
+  const barRaw = (label, val, txt) => '<div class="dbar"><span class="lb">'+label+'</span><div class="track"><div class="fill" style="width:'+Math.min(100, Math.max(0, val/MAX*100))+'%"></div></div><span class="val"><i class="abnum" style="font-size:12px">'+txt+'</i></span></div>';
+  if(d.d10) extra.push(barRaw('规则风险', CAT[d.d10]||5, d.d10));
+  if(d.d11) extra.push(barRaw('可操作性', CAT[d.d11]||5, d.d11));
+  if(c.dep){
+    const dv = (c.dep.trim()[0]||'');
+    extra.push('<div class="dbar"><span class="lb">将池依赖度</span><div class="track"><div class="fill" style="width:'+Math.min(100,(CAT[dv]||5)/MAX*100)+'%"></div></div><span class="val" title="'+esc(c.dep)+'"><i class="abnum" style="font-size:12px">'+esc(dv)+'</i></span></div>');
+  }
+  if(extra.length) h += '<div class="dbars dsecond">'+extra.join('')+'</div>';
+  return h;
+}
+
+/* 分数稳定性：区间取自维度A逐项求和模板，跨档概率来自区间传播抽样（mc_tier.py） */
+/* 各档概率：逐个四舍五入会加出 101%（50.6 + 49.4 → 51 + 50），统一用最大余数法凑成 100 */
+function pctSegs(m){
+  const keys = Object.keys(m.p||{}).map(Number).sort((a,b)=>a-b);
+  const segs = keys.map(k => ({ k, w: (m.p[k]||0)*100 })).filter(s => s.w >= 0.5);
+  const ints = segs.map(s => Math.floor(s.w));
+  let rest = 100 - ints.reduce((a,b)=>a+b, 0);
+  segs.map((s,i)=>({ i, f: s.w - Math.floor(s.w) })).sort((a,b)=>b.f-a.f)
+      .forEach(o => { if(rest > 0){ ints[o.i]++; rest--; } });
+  return segs.map((s,i)=>({ k:s.k, w:s.w, n:ints[i] }));
+}
+/* 网格小卡上的彩条：只在「边界卡」筛选下出现，不占常态版面 */
+function miniBar(m){
+  if(!m || !m.p) return '';
+  const segs = pctSegs(m);
+  if(!segs.length) return '';
+  const tip = segs.map(s=>TIER_LABEL['t'+s.k]+' '+s.n+'%').join(' / ');
+  return '<div class="minibar" title="'+tip+'">'+segs.map(s=>
+    '<span style="width:'+s.w.toFixed(2)+'%;background:'+TIER_COLOR['t'+s.k]+'"></span>').join('')+'</div>';
+}
+
+/* 修正位移的短标签：给读者看「为什么加减分」，不出现 M 代号与 D 项代号 */
+const M_LABEL = {
+  'M1': '主场景切片塌陷', 'M2': '裸装/配合脱节', 'M3': '启动慢', 'M4': '主公向双低',
+  'M5': '上手与精通差距大', 'M6': '可操作性低', 'M7': '全位置强且无对应短板'
+};
+const mLabel = h => M_LABEL[h.split(/[+-]/)[0]] || '';
+/* 档位名：mc.tier 可能是数字、'undecided' 或 null，统一兜到「未定档」 */
+const tierName = t => (t==null ? '未定档'
+  : (TIER_LABEL['t'+t] || TIER_LABEL[t] || '未定档'));
+/* 说明类小字统一折叠：结论留在明面，读法 / 公式 / 口径点开才看。
+   只用于「解释怎么读」，不要拿它藏结论（为什么未定档、为什么复算冲突这类必须直接可见）。
+
+   foldParts 把「胶囊」和「展开体」拆成两个字符串，方便把胶囊挂到面板标题行、
+   展开体留在正文位置；noteFold 是两者相邻的简写（用于正文里的就地折叠）。 */
+let ND_SEQ = 0;
+function foldParts(label, body){
+  if(!body) return {chip:'', body:''};
+  const id = 'nd' + (++ND_SEQ);
+  return {
+    chip: '<button type="button" class="nd-toggle" data-nd="'+id+'" aria-expanded="false" aria-controls="'+id+'">'+label+'</button>',
+    body: '<div class="nd-body" id="'+id+'" hidden>'+body+'</div>'
+  };
+}
+function noteFold(label, body){
+  const p = foldParts(label, body);
+  return p.chip + p.body;
+}
+/* 展开/收起：事件委托，重渲染后不用重新绑定 */
+document.addEventListener('click', e => {
+  const btn = e.target && e.target.closest ? e.target.closest('.nd-toggle') : null;
+  if(!btn) return;
+  const box = document.getElementById(btn.getAttribute('data-nd'));
+  if(!box) return;
+  const open = box.hasAttribute('hidden');
+  if(open) box.removeAttribute('hidden'); else box.setAttribute('hidden','');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+/* 分数是怎么算出来的：四步全写出来，读者可以自己验。
+   ① 强度分 D1 ② 加修正位移 Δ 得算式值 S ③ S 落在哪个档带 ④ 过了哪道门槛、最后按哪种取法记分 */
+function deriveHTML(m, c){
+  const d1 = m.d1==null ? null : +m.d1;
+  if(d1==null || !isFinite(d1)) return '';
+  const dl = (m.delta==null ? 0 : +m.delta), s = +m.s;
+  if(!isFinite(s)) return '';
+  const hits = (m.delta_hits||[]).map(mLabel).filter(Boolean);
+  const uniq = hits.filter((v,i)=>hits.indexOf(v)===i);
+  const dlTxt = dl===0 ? '±0' : (dl>0?'+':'−')+Math.abs(dl).toFixed(1);
+  const sc = parseFloat(c && c.score);
+  const steps = [];
+  steps.push('<b>强度分</b> ' + d1.toFixed(1) + ' '
+    + (dl===0 ? '（无修正）' : '修正 <span class="num">' + dlTxt + '</span>' + (uniq.length ? '（' + uniq.join('、') + '）' : ''))
+    + ' ＝ <span class="num">' + s.toFixed(1) + '</span>');
+  steps.push('<b>档带</b> ' + s.toFixed(1) + ' 落在 ' + tierName('t' + bandOfS(s)) + ' 带·' + segOf(s) + '（档内 ' + Math.round(segPos(s)) + '%）');
+  if ((m.gate_notes || []).length) steps.push('<b>门槛</b> ' + esc(m.gate_notes.map(plainGate).join('；')));
+  if (m.score_why === 'demote') steps.push('<b>取分</b> 降档后压到该档上沿 <span class="num">' + esc(c.score) + '</span>');
+  else if (m.score_why === 'cap-mid') steps.push('<b>取分</b> 规则风险·中封顶 <span class="num">' + esc(c.score) + '</span>');
+  else if (m.score_why === 'cap-high') steps.push('<b>取分</b> 规则风险·高封顶 <span class="num">' + esc(c.score) + '</span>');
+  else if (m.score_why === 'below') steps.push('<b>取分</b> 抬到该档下沿 <span class="num">' + esc(c.score) + '</span>');
+  else steps.push('<b>取分</b> 算式值在档带内，直接取 <span class="num">' + esc(c.score) + '</span>');
+  return '<div class="unc-line derive">' + steps.map((s, i) => (i ? '<span class="ar">→</span>' : '') + '<span class="stp">' + s + '</span>').join('')
+    + '<span class="tt">＝ ' + tierName(m.tier) + ' · ' + segOf(sc) + '</span></div>';
+}
+
+/* 每卡口径标注：稳定口径 / 描述风险子类 / 强度分漂移——设计局限逐卡可见，不静默藏起。
+   全部外行话：D8＝稳定轴、D10＝描述风险、D1＝强度分，详情页公开文案不得出现代号。 */
+function calibNoteHTML(m){
+  if(!m) return '';
+  const parts = [];
+  const cal = m.d8_caliber;
+  if(cal && cal !== '最坏切片') parts.push('稳定口径：' + cal + '（非默认最坏切片，跨卡不直接可比）');
+  else if(cal === '最坏切片') parts.push('稳定口径：最坏切片（保守基准）');
+  const sub = m.d10_sub || {};
+  if(sub['措辞歧义']) parts.push('描述风险子类·措辞歧义：' + sub['措辞歧义'] + '；规则集边缘／结构缺口：本榜单无实测数据，依专家判定');
+  const dr = m.d1_drift;
+  if(dr != null && Math.abs(dr) > 0.05){
+    const sgn = dr > 0 ? '+' : '−';
+    parts.push('强度分录入值相对锚点基线 ' + sgn + Math.abs(dr).toFixed(2) + '（专家判定裕度）');
+  }
+  if(!parts.length) return '';
+  return '<div class="unc-line ci-note">' + parts.map(p => '<span class="ci-pill">' + p + '</span>').join('') + '</div>';
+}
+
+/* 闸门记录的「外行话」翻译：详表内部写作 D2/D6/维度D，读者面前不许出现代号 */
+const GATE_WHY = [
+  [/^D2\s*<\s*([\d.]+)/, (m, v) => '防御与生存低于 ' + v],
+  [/^D6\s*<\s*([\d.]+)/, (m, v) => '续航与换牌低于 ' + v],
+  [/^D9裸\s*<\s*([\d.]+)/, (m, v) => '单打分值低于 ' + v]
+];
+function plainWhy(s){
+  return String(s).split(/、/).map(x => {
+    const t = x.trim();
+    for (const [re, fn] of GATE_WHY) { const m = t.match(re); if (m) return fn(m, m[1]); }
+    if (/裸装\/配合\s*<\s*([\d.]+)/.test(t)) return '单打不到 ' + RegExp.$1 + ' 分，配合也没补上';
+    if (/描述歧义高/.test(t)) return '描述仍有歧义';
+    if (/规则风险非低/.test(t)) return '还有规则歧义';
+    if (/将池依赖高/.test(t)) return '太吃特定将池';
+    if (/上手\/精通差≥1档/.test(t)) return '上手和精通差 1 档以上';
+    return t;
+  }).join('、');
+}
+function plainGate(s){
+  const x = String(s).replace(/\s+/g, ' ').trim();
+  let m;
+  if ((m = x.match(/规则风险·(高|中)\s*→\s*不优于 T(\d)/))) return '规则风险·' + m[1] + '：最高只到 T' + m[2];
+  if ((m = x.match(/描述歧义·高\s*→\s*不优于 T(\d)/))) return '描述歧义·大：最高只到 T' + m[1];
+  if ((m = x.match(/T1 门槛（([^）]*)）\s*→\s*T2/))) return '进 T1 的门槛没过（' + plainWhy(m[1]) + '）';
+  if ((m = x.match(/T2 门槛（([^）]*)）\s*→\s*T3/))) return '进 T2 的门槛没过（' + plainWhy(m[1]) + '）';
+  if ((m = x.match(/维度D 就低\s*→\s*T(\d)/))) return '上手与精通都只到 ' + m[1] + ' 档，按较低的那个记';
+  return x;
+}
+
+/* 翻档条件：回答「这张卡要换档，缺的是分数还是能力」。
+   分数是确定的，推演区间是概率的，两条线在这里对上：
+   ① 分数线没到 → 差 x 分，并与区间宽度比一比（差得比波动还小 = 翻档本来就在可能范围内）
+   ② 分数线到了、门槛没过 → 分数这一侧已经没余量，缺的是一项能力
+   ③ 被规则风险封顶 → 分再高也不动，得先降风险
+   不给「再涨 0.3 就升档」这种承诺：门槛是独立的一道闸，分数过了不等于档位过了。 */
+const BAND_LO_ARR = BAND_LO.concat([0]);   // 末位 0 = 最低档下界（判「是否掉出本档」用）
+function marginHTML(m, c){
+  const s = +m.s, t = +m.tier;
+  if(m.tier == null || !isFinite(s) || Math.round(t)!==t || t<0 || t>5) return '';
+  const why = String(m.score_why || '');
+  const p05 = (m.s_p05!=null?+m.s_p05:+m.s_min), p95 = (m.s_p95!=null?+m.s_p95:+m.s_max);
+  const half = isFinite(p05)&&isFinite(p95) ? (p95-p05)/2 : NaN;
+  const lo = BAND_LO_ARR[t], up = t>0 ? BAND_LO_ARR[t-1] : NaN;
+  const notes = (m.gate_notes || []).map(plainGate);
+  const isRisk = x => /规则风险|描述歧义/.test(x);
+  const isStruct = x => /上手|精通|将池/.test(x);
+  const nRisk = notes.filter(isRisk), nStruct = notes.filter(x=>!isRisk(x) && isStruct(x));
+  const nAbil = notes.filter(x => !isRisk(x) && !isStruct(x));
+  let txt = '', hint = '';
+  if(notes.length){
+    const bt = bandOfS(s);
+    const cats = [];
+    if(nAbil.length) cats.push(['能力项', '补数值']);
+    if(nRisk.length) cats.push(['规则与描述', '改文本']);
+    if(nStruct.length) cats.push(['上手难度', '简化操作']);
+    if (bt < t) {
+      txt = '分数这一侧够了：算式值 <span class="num">' + s.toFixed(1) + '</span> 够 ' + tierName('t'+bt)
+          + '，档位却停在 <b>' + tierName(m.tier) + '</b>，卡在闸门而不是分数';
+    } else {
+      txt = '档位不是被分数压下来的：算式值 <span class="num">' + s.toFixed(1) + '</span> 落在 ' + tierName('t'+bt)
+          + ' 带，按「就低」规则放到 <b>' + tierName(m.tier) + '</b>';
+    }
+    hint = (cats.length === 1 ? '卡点只有一类：' : '卡点有 ' + cats.length + ' 类，都要解：')
+      + cats.map(c => c[0] + '（' + c[1] + '）').join('、')
+      + (cats.length === 1 ? '——解决它，档位就回到分数对应的位置' : '');
+  } else if(why.indexOf('cap') === 0){
+    txt = '<b>再涨分也不换档</b>：上限锁在规则风险，算式值 <span class="num">'+s.toFixed(1)+'</span> 最多只记到 <span class="num">'+esc(c.score)+'</span>';
+    hint = '要往上走只能先改描述、把风险降到「低」——分数这一侧已经没有余量';
+  } else if(!isFinite(up)){
+    const mg = +(s - lo).toFixed(1);
+    txt = '已在最高档。掉出 ' + tierName(m.tier) + ' 要跌破 <span class="num">'+lo.toFixed(1)+'</span>，现在还有 <span class="num">'+mg.toFixed(1)+'</span> 分缓冲';
+    hint = mg <= Math.max(0.3, half) ? '缓冲比推演区间的一半还窄：往下掉同样在正常波动内' : '';
+  } else {
+    const need = +(up - s).toFixed(1), mg = +(s - lo).toFixed(1);
+    txt = '离 ' + tierName('t'+(t-1)) + ' 线（<span class="num">'+up.toFixed(1)+'</span>）还差 <span class="num">'+need.toFixed(1)+'</span> 分';
+    txt += mg <= 0.05
+      ? '；本档已经贴在下限 <span class="num">'+lo.toFixed(1)+'</span>，分再低一点就掉档'
+      : '；离掉出 '+tierName(m.tier)+'（<span class="num">'+lo.toFixed(1)+'</span>）还有 <span class="num">'+mg.toFixed(1)+'</span> 分';
+    if(isFinite(half) && half > 0){
+      hint = need <= half
+        ? '这点差距小于推演区间的一半（±'+half.toFixed(1)+'），翻上去本来就在可能范围内'
+        : '差距大于推演区间的一半（±'+half.toFixed(1)+'），光靠读法波动翻不上去';
+    }
+    hint += (hint?'；':'') + (t === 1
+      ? '过线之后规则风险还得是「低」、描述不能有歧义，才留得住 T0'
+      : '过线之后还要过 ' + tierName('t'+(t-1)) + ' 的门槛');
+  }
+  return '<div class="unc-line mgn"><span class="ci-lb">翻档条件</span> ' + txt
+    + (hint ? ' <span class="ci-w">'+hint+'</span>' : '') + '</div>';
+}
+
+function uncHTML(c){
+  const m = c.mcMode || c.mc;
+  if(!m || m.s_min==null || m.s_max==null)
+    return {chip:'', html:'<div class="unc-note">暂无区间数据（这张卡还没建逐项收益表）。</div>'};
+  /* 未定档的卡没有档位，谈「换档概率」没有意义：只给算式与区间，不给彩条 */
+  if(tierName(m.tier)==='未定档'){
+    const f = foldParts('参考分怎么算的', deriveHTML(m, c));
+    return {chip: f.chip, html: '<div class="unc-line">参考区间 <span class="num">'+(+m.s_min).toFixed(1)+' – '+(+m.s_max).toFixed(1)+'</span></div>'
+      + '<div class="unc-note">这张卡判为<b>未定档</b>：卡面文字不足以读出唯一打法（或强度完全取决于随机件），所以不给档位、也不算换档概率。上面的数字只是把它按现有描述当作普通卡算出的参考值，<b>不是结论</b>。改法见下方「定位」。</div>'
+      + f.body};
+  }
+  /* 复算与定位行对不上：把「差多少」直接写出来，不给概率 */
+  if(m.gate_mismatch){
+    const d1 = +m.d1, dl = +m.delta, s = +m.s;
+    const op = dl < 0 ? '−' : '+';
+    const dlAbs = dl === 0 ? '0' : Math.abs(dl).toFixed(1);
+    const reason = m.mismatch_reason
+      ? '原因：'+m.mismatch_reason+'。'
+      : '「定位」行没写差在哪。';
+    return {chip:'', html:'<div class="unc-line">「评级详表」写 <b>T'+m.tier+'</b>（'+c.score+' 分），但按表里的数重算对不上：强度分 '+d1.toFixed(1)+' '+op+' '+dlAbs+' = '+s.toFixed(1)+' → 落 <b>'+tierName(m.tier_hat)+'</b>。</div>'+
+           '<div class="unc-note">'+reason+'概率是绕着重算值算的，两边对不上就先不给。以「评级详表」的「定位」行为准。</div>'};
+  }
+  const keys = Object.keys(m.p||{}).map(Number).sort((a,b)=>a-b);
+  if(!keys.length)
+    return {chip:'', html:'<div class="unc-line">分数区间 <span class="num">'+(+m.s_min).toFixed(1)+' – '+(+m.s_max).toFixed(1)+'</span></div>'+
+           '<div class="unc-note">这张卡的程序值复算与定位行不一致（见「评级详表」），暂不给跨档概率，待人工复核。</div>'};
+  const p05 = (m.s_p05!=null?+m.s_p05:+m.s_min), p95 = (m.s_p95!=null?+m.s_p95:+m.s_max);
+  /* 各档概率逐个四舍五入会加出 101%（50.6 + 49.4 → 51 + 50），用最大余数法凑成 100 */
+  const segs = pctSegs(m);
+  /* 彩条置顶：这是「这个档位有多稳」最直观的结论，不折叠。
+     推导链 / 90% 区间 / 翻档条件属于「怎么算出来的」，统一收进下面那颗胶囊。 */
+  let h = '<div class="unc-bar">'+segs.map(s=>{
+    const lb = TIER_LABEL['t'+s.k]||('T'+s.k), pctTxt = s.n+'%';
+    /* 档号与百分比之间必须有分隔（中间点），否则小字号下「T2 100%」会被读成「2100%」 */
+    const txt = s.w>=18 ? '<b>'+lb+'</b><i>·</i>'+pctTxt : (s.w>=8 ? pctTxt : '');
+    return '<span class="unc-seg" style="width:'+s.w.toFixed(2)+'%;background:'+TIER_COLOR['t'+s.k]+'" title="'+lb+' · '+s.n+'%">'+txt+'</span>';
+  }).join('')+'</div>';
+  /* 折叠内容 = 怎么算出来的：推导链 → 90% 区间 → 翻档条件 → 读法。
+     面板明面只留彩条（结论）；summary 带区间宽度与卡点标签，
+     所以收起也不隐瞒「有多稳 / 是不是边界卡 / 卡在哪」。 */
+  let calc = deriveHTML(m, c);
+  calc += '<div class="unc-line" title="极端区间（全区间抽样的最宽处，含长尾）：'+(+m.s_min).toFixed(1)+' – '+(+m.s_max).toFixed(1)+'">'
+    + '<span class="ci-lb">90% 推演区间</span> <span class="num">'+p05.toFixed(1)+' – '+p95.toFixed(1)+'</span>'
+    + '<span class="ci-w">宽 '+(p95-p05).toFixed(1)+' 分</span>';
+  if(m.boundary) calc += '<span class="badge unc">边界卡</span>';
+  calc += '</div>';
+  calc += marginHTML(m, c);
+  calc += calibNoteHTML(m);
+  let notes = '<p>彩条是这张卡落到各档的概率。区间来自它的「逐项收益表」（技能收益一项一项加出来的上下限），在这个区间里抽样 2 万次、每次都走同一套档位规则——量的是<b>这个档位有多稳</b>，不是胜率。<b>90% 推演区间</b>＝抽样的中间九成落点（去掉两端各 5% 的长尾）；它读作「按现有收益区间，九成情形落在这段」，不是「分数会随便变」。区间越窄＝这张卡的收益越容易算死；宽到跨档，就会同时挂「边界卡」。</p>';
+  /* 区间跨了分数带、概率却全压在一档：是硬门槛拦的，不是分数直接切的 */
+  if(keys.length===1 && bandOfS(+m.s_min)!==bandOfS(+m.s_max)){
+    notes += '<p>这段分数跨了两条档带，但<b>硬门槛</b>（协同依赖 / 规则风险 / 上手难度）对它整段都成立，所以档位没有跟着分数上下跳。</p>';
+  }
+  /* 现行档位不是概率最大的那一档：这不是 bug，是分数压在档线上、按较高一侧判 */
+  const topSeg = segs.reduce((a,b)=> b.w>a.w ? b : a, segs[0]);
+  if(topSeg && topSeg.k !== m.tier){
+    const iCur = segs.findIndex(s=>s.k===m.tier);
+    const curTxt = iCur>=0 ? segs[iCur].n+'%' : '不到 1%';
+    notes += '<p>分数正好压在 '+tierName(m.tier)+' 的档线附近：按区间抽样有 '+topSeg.n+'% 落在 '+tierName(topSeg.k)+'、'+curTxt+' 留在 '+tierName(m.tier)+'，现行档位取的是较高的那一侧。</p>';
+  }
+  /* 算式值 ≠ 榜单值：不是算错，是取分规则（档带 / 降档上沿 / 风险封顶）的结果。
+     具体卡在哪一步已经写在头部那行推导里，这里只补一句「没有人工微调」。 */
+  const sc = parseFloat(c.score);
+  const ms = +m.s;
+  if(isFinite(sc) && Math.abs(sc - ms) > 0.05){
+    notes += '<p>榜单分 <b>'+sc.toFixed(1)+'</b> 与算式值 <b>'+ms.toFixed(1)+'</b> 不同，是上面那行推导里<b>「门槛／取分」两步</b>的结果。'
+      + '这一步不是人工微调：全榜 105 张用同一套取分规则、构建时逐张复算过（偏差 0 张），'
+      + '规则原文见「算法说明 · 从算式值到榜单分」。区间与概率仍按算式值画。</p>';
+  }
+  calc += notes;
+  const tag = ' · 90% 区间 ' + p05.toFixed(1) + '–' + p95.toFixed(1)
+    + (m.boundary ? ' · 边界卡' : '')
+    + ((m.gate_notes||[]).length ? ' · 卡在门槛' : '');
+  const fold = foldParts('档位怎么来的'+tag, calc);
+  /* 返回 {chip, html}：胶囊由 renderDetail 挂到面板标题行，展开体留在彩条下方。
+     注意 html 是若干个同级 .unc-bar/.unc-line 片段，没有外层容器——
+     这里多包一层或多写一个闭合标签，会把 renderDetail 的右列 div 提前关掉，
+     后面的面板就会掉进 grid 第二行（雷达图跑到左列、被 sticky 卡图盖住）。 */
+  return {chip: fold.chip, html: h + fold.body};
+}
+
+function renderDetail(name){
+  const c = DATA.find(x=>x.name===name);
+  if(!c) return;
+  const t = c.tier;
+  let h = '';
+  /* 头部 */
+  const nameParts = c.name.split('·');
+  const nameMain = nameParts[0], nameTitle = nameParts.slice(1).join('·');
+  /* 头部：档位／分数／段位／设计者／阵营／血甲之外，再给两条「第一眼就能判断」的信息——
+     分数在池内的名次（这张卡在同批里排第几）与边界标志（结论偏不稳）。两者都是头部原本没有的信息。 */
+  const ratedAll = DATA.filter(x => x.score != null && !isNaN(parseFloat(x.score)));
+  const myRank = c.score != null ? ratedAll.filter(x => parseFloat(x.score) > parseFloat(c.score)).length + 1 : 0;
+  h += '<div class="a-head"><h1>'+esc(nameMain)+(nameTitle?'<span class="a-title">'+esc(nameTitle)+'</span>':'')+'</h1><div class="a-meta">'+
+       '<span class="badge '+t+'">'+TIER_LABEL[t]+'</span>'+
+       (c.stale?'<span class="badge stale">待重跑</span>':'')+
+       (c.boundary?'<span class="badge unc" title="分数区间跨档：档位可能上下浮动，详情页有概率分布">边界卡</span>':'')+
+       (c.score?('<span class="score">'+c.score+'<i class="den">/10</i><i class="seg2">·'+segOf(rawS(c))+'（档内 '+Math.round(segPos(rawS(c)))+'%，'+(scoreRewritten(c)?('原 S '+(+(c.mcMode?c.mcMode.s:c.mc.s)).toFixed(1)+'，'+whyLabel((c.mcMode?c.mcMode.score_why:c.mc.score_why))+'）'):'自然落点')+'）</i></span>'):'')+
+       '<span class="meta-sep"></span>'+
+       (myRank?'<span class="meta-pill" title="同批 '+ratedAll.length+' 张有效卡里，这张卡的分数排第几">池内第 '+myRank+' / '+ratedAll.length+'</span>':'')+
+       '<span class="au-inline">设计者 '+esc(c.designer||'未知')+'</span>'+
+       (c.faction?'<span class="meta-pill">'+esc(c.faction)+'</span>':'')+
+       (c.hp&&c.hp!=='—'?'<span class="meta-pill">'+esc(c.hp)+'</span>':'')+
+       '</div></div>';
+  /* 评级理由与强度分析同属「为什么是这个分」：合成一块结论区，
+     理由在上给判断，强度分析在下给证据，只留一层边框与一条分隔线。 */
+  if(c.comment || c.strength || c.stale){
+    h += '<div class="panel verdict">';
+    if(c.stale) h += '<div class="stale-box"><b>⚠ 待重跑：</b>'+esc(c.stale)+'</div>';
+    if(c.comment) h += '<div class="why-box"><b>评级理由：</b>'+esc(c.comment)+'</div>';
+    if(c.strength) h += '<div class="str-hd">强度分析</div>'+strengthHTML(c.strength);
+    h += '</div>';
+  }
+
+  /* 描述歧义已并入左栏「卡面 + 技能原文」卡片：和原文放在一起看，才知道是措辞清楚还是需要另行约定 */
+  let ambPanel = '';
+  if(t==='unrated'){
+    h += '<div class="panel"><h3>未参评说明</h3><div class="d-content">'+esc(c.stub||'描述文本缺失，按协议不参评。')+'</div></div>';
+  } else {
+    /* 分数稳定性（区间 + 跨档概率）：先看结论有多稳，再看能力形状 */
+    /* 「怎么读」胶囊挂在面板标题行（标题：胶囊），不另占一行 */
+    const unc = uncHTML(c), ab = abilityPanel(c);
+    h += '<div class="panel"><div class="p-hd"><h3>这个分数有多稳</h3>'+unc.chip+'</div>'+unc.html+'</div>';
+    /* 能力维度：八轴两种口径 + 定位五项，同面板一起看形状 */
+    h += '<div class="panel sec"><div class="p-hd"><h3>能力维度（八轴）</h3>'+ab.chip+'</div>'+ab.html+'</div>';
+
+    /* 描述有没有歧义：搬到左栏技能原文下方（标题是问句，答案挂标题行，不让读者去正文找） */
+    const ambHas = (c.amb||'').trim().indexOf('有') === 0;
+    ambPanel = '<div class="amb-block"><div class="p-hd"><h3>描述有没有歧义</h3>'
+      + '<span class="p-tag '+(ambHas?'bad':'ok')+'">'+(ambHas?'有歧义':'无歧义')+'</span></div>'+ambHTML(c)+'</div>';
+    /* D1–D11 已整合进能力雷达（百分制），不再单列面板 */
+    h += '<div class="a-foot">评级口径：0–10 强度分，按牌面推演给出、不是胜率统计，越高越强 · 依据 2026-10-21 卡牌文本存档 · 标「低置信」的分数是照同类卡估的，可能上下浮动 · 技能改写后结论可能变</div>';
+  }
+
+  article.innerHTML =
+    '<div class="fig">'+(c.noImg||!c.img
+        ? '<div class="fig-ph">暂无卡图<div class="cap">这张卡还没出图，出图后放进导出PNG 再 rebuild 即可</div></div>'
+        : '<img src="'+c.img+'" alt="'+c.name+'" id="bigImg"><div class="cap">点击图片查看原图 · '+esc(c.name)+'</div>')+figSkills(c)+ambPanel+'</div>'+
+    '<div>' + h + '</div>';
+  const bigImg = $('#bigImg');
+  if (bigImg){ bigImg.onclick = ()=>openLB(c.img, c.name); bindImgRetry(bigImg); }
+  const cb = $('#copySkillBtn');
+  if(cb) cb.onclick = ()=>{
+    const txt = rawSkillList(c).map(s=>'【'+s.name+'】'+(s.cat?'\n'+s.cat:'')+'\n'+s.desc).join('\n\n');
+    const done = ()=>{ cb.textContent='已复制'; setTimeout(()=>{ cb.textContent='复制'; }, 1500); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(()=>{ fallbackCopy(txt); done(); });
+    } else { fallbackCopy(txt); done(); }
+  };
+  $('#crumb').textContent = '梯度榜 / '+(TIER_NAME[t]||'')+' / '+c.name;
+  const vis = (NAV_LIST && NAV_LIST.length) ? NAV_LIST : visibleCards();
+  const idx = vis.findIndex(x=>x.name===name);
+  const pb = $('#prevBtn'), nb = $('#nextBtn');
+  const total = vis.length, pos = idx < 0 ? 0 : idx;
+  pb.disabled = total === 0; nb.disabled = total === 0;
+  /* 首尾循环：第一位点「上一位」到最后一位，最后一位点「下一位」回第一位 */
+  pb.onclick = ()=>{ if(total) openCard(vis[(pos - 1 + total) % total].name, {replace:true}); };
+  nb.onclick = ()=>{ if(total) openCard(vis[(pos + 1) % total].name, {replace:true}); };
+  detail.scrollTop = 0;
+}
+
+let cardPushed = false;   /* 详情页是否由本页 push 出一条历史记录 */
+function openCard(name, opts){
+  opts = opts || {};
+  renderDetail(name);
+  detail.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  const hash = '#card=' + encodeURIComponent(name);
+  /* 首次从榜单进入 → push 一条；切上/下一位 → replace，避免历史里堆一堆角色 */
+  if(opts.replace || cardPushed){
+    history.replaceState({card:name}, '', hash);
+  } else {
+    history.pushState({card:name}, '', hash);
+    cardPushed = true;
+  }
+}
+function closeCard(){
+  detail.classList.remove('show');
+  document.body.style.overflow = '';
+  /* 关键修复：只回退到「进入详情前」那一条（榜单），而不是上一个角色 */
+  if(cardPushed){
+    cardPushed = false;
+    history.back();
+  } else if(location.hash.indexOf('#card=')===0){
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+}
+$('#backBtn').onclick = closeCard;
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    if($('#lightbox').classList.contains('show')) closeLB();
+    else if(docview.classList.contains('show')) closeDoc();
+    else if($('#poolview').classList.contains('show')) closePool();
+    else if(detail.classList.contains('show')) closeCard();
+  }
+});
+window.addEventListener('popstate', ()=>{
+  const m = location.hash.match(/^#card=(.+)$/);
+  if(m){
+    cardPushed = false;
+    openCard(decodeURIComponent(m[1]), {replace:true});
+  } else {
+    cardPushed = false;
+    detail.classList.remove('show');
+    document.body.style.overflow='';
+  }
+});
+
+/* ---------- 灯箱 ---------- */
+function openLB(src,cap){ const lb=$('#lbImg'); bindImgRetry(lb); lb.src=src; $('#lbCap').textContent=cap; $('#lightbox').classList.add('show'); }
+function closeLB(){ $('#lightbox').classList.remove('show'); }
+$('#lightbox').onclick = closeLB;
+
+/* ---------- 文档查看器（md → HTML，fetch 按 UTF-8 解码，杜绝乱码） ---------- */
+const DOC_TITLE = {'算法说明.md':'算法说明（各区域怎么算）','DIY裁决协议-v10.0.md':'DIY 裁决协议 v10.1','评级总览-v10.0.md':'评级总览 v10.1','评级详表-v10.0.md':'评级详表 v10.1'};
+const docCache = {};
+
+function mdInline(s){
+  return esc(s)
+    .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>');
+}
+function mdTable(rows){
+  const cells = r => r.trim().replace(/^\|/,'').replace(/\|$/,'').split('|').map(c=>c.trim());
+  let h = '<table><thead><tr>'+cells(rows[0]).map(c=>'<th>'+mdInline(c)+'</th>').join('')+'</tr></thead><tbody>';
+  for(let i=2;i<rows.length;i++){
+    h += '<tr>'+cells(rows[i]).map(c=>'<td>'+mdInline(c)+'</td>').join('')+'</tr>';
+  }
+  return h+'</tbody></table>';
+}
+function mdRender(src){
+  const lines = src.replace(/\r\n?/g,'\n').split('\n');
+  let html='', inCode=false, codeBuf=[], list=null, quote=false, tbl=null;
+  const closeList=()=>{ if(list){ html += (list==='ul'?'</ul>':'</ol>'); list=null; } };
+  const closeQuote=()=>{ if(quote){ html += '</blockquote>'; quote=false; } };
+  const closeTable=()=>{ if(tbl){ html += mdTable(tbl); tbl=null; } };
+  const closeAll=()=>{ closeList(); closeQuote(); closeTable(); };
+  for(const raw of lines){
+    const line = raw.replace(/\s+$/,'');
+    if(/^\s*```/.test(line)){
+      if(inCode){ html += '<pre style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;overflow-x:auto;font-size:12px;">'+esc(codeBuf.join('\n'))+'</pre>'; inCode=false; codeBuf=[]; }
+      else { closeAll(); inCode=true; }
+      continue;
+    }
+    if(inCode){ codeBuf.push(raw); continue; }
+    if(!line.trim()){ closeAll(); continue; }
+    const hM = line.match(/^(#{1,6})\s+(.*)$/);
+    if(hM){ closeAll(); const lv=hM[1].length; html += '<h'+lv+'>'+mdInline(hM[2])+'</h'+lv+'>'; continue; }
+    if(/^\s*\|/.test(line)){
+      if(!tbl){ closeList(); closeQuote(); tbl=[line]; }
+      else tbl.push(line);
+      continue;
+    }
+    if(/^\s*(-{3,}|\*{3,})\s*$/.test(line)){ closeAll(); html += '<hr>'; continue; }
+    const qM = line.match(/^>\s?(.*)$/);
+    if(qM){ closeList(); closeTable(); if(!quote){ html += '<blockquote>'; quote=true; } html += '<p>'+mdInline(qM[1])+'</p>'; continue; }
+    const ulM = line.match(/^\s*[-*]\s+(.*)$/);
+    if(ulM){ closeQuote(); closeTable(); if(list!=='ul'){ closeList(); html += '<ul>'; list='ul'; } html += '<li>'+mdInline(ulM[1])+'</li>'; continue; }
+    const olM = line.match(/^\s*\d+[.、]\s*(.*)$/);
+    if(olM){ closeQuote(); closeTable(); if(list!=='ol'){ closeList(); html += '<ol>'; list='ol'; } html += '<li>'+mdInline(olM[1])+'</li>'; continue; }
+    closeAll();
+    html += '<p>'+mdInline(line)+'</p>';
+  }
+  if(inCode && codeBuf.length) html += '<pre style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;overflow-x:auto;font-size:12px;">'+esc(codeBuf.join('\n'))+'</pre>';
+  closeAll();
+  return html;
+}
+/* 文档全文约 0.7MB，全部内联会让首屏多等一倍时间，所以放到 cards-docs.js 按需注入。
+   注入 <script> 而不是 fetch：file:// 双击打开时 fetch 会被浏览器拦，<script> 不会。 */
+let docsLoading = false, docsWaiters = [];
+function withDocs(cb){
+  if (window.__EMBED_DOCS__ || window.__DOCS_FAILED__){
+    EMBED_DOCS = window.__EMBED_DOCS__ || EMBED_DOCS;
+    cb(); return;
+  }
+  docsWaiters.push(cb);
+  if (docsLoading) return;
+  docsLoading = true;
+  const s = document.createElement('script');
+  s.src = 'cards-docs.js';
+  s.onload = ()=>{
+    docsLoading = false;
+    EMBED_DOCS = window.__EMBED_DOCS__ || {};
+    docsWaiters.splice(0).forEach(f=>f());
+  };
+  s.onerror = ()=>{
+    docsLoading = false;
+    window.__DOCS_FAILED__ = true;      /* 拿不到就退回 fetch，别再无限重试 */
+    docsWaiters.splice(0).forEach(f=>f());
+  };
+  document.head.appendChild(s);
+}
+function openDoc(file){
+  if (!window.__EMBED_DOCS__ && !window.__DOCS_FAILED__){ withDocs(()=>openDoc(file)); return; }
+  $('#docTitle').textContent = DOC_TITLE[file] || file;
+  $('#docBody').innerHTML = '<div class="dv-loading">加载中…</div>';
+  docview.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  docview.scrollTop = 0;
+  if(docCache[file]){ $('#docBody').innerHTML = docCache[file]; return; }
+  /* 优先用构建时内嵌的 md 副本（file:// 直开也能看）；无内嵌（旧构建）才回退 fetch */
+  if(EMBED_DOCS && typeof EMBED_DOCS[file] === 'string'){
+    docCache[file] = mdRender(EMBED_DOCS[file]);
+    $('#docBody').innerHTML = docCache[file];
+    return;
+  }
+  fetch(file).then(r=>{
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.text();
+  }).then(txt=>{
+    docCache[file] = mdRender(txt);
+    $('#docBody').innerHTML = docCache[file];
+  }).catch(()=>{
+    $('#docBody').innerHTML = '<div class="dv-loading">加载失败：'+esc(file)+'（请确认通过本地服务访问，且文件存在）</div>';
+  });
+}
+function closeDoc(){
+  docview.classList.remove('show');
+  document.body.style.overflow = '';
+}
+$('#docBackBtn').onclick = closeDoc;
+document.querySelectorAll('.doc-links button').forEach(b=>{
+  b.onclick = ()=>openDoc(b.getAttribute('data-doc'));
+});
+$('#algoBtn').onclick = ()=>openDoc($('#algoBtn').getAttribute('data-doc'));
+
+/* ---------- 池分析（整池统计视图） ----------
+   全部由页面内 DATA 现算：不引入手估分、不改档、不影响榜单排序。
+   统计口径写在《算法说明》⑧。 */
+const PV_AXES = ABIL_CORE.map(x => x[0]);
+const PV_DNAME = {
+  D1:'收益期望', D2:'防御生存', D3:'先手压制', D4:'控制拆解',
+  D5:'启动速度', D6:'续航换牌', D7:'辅助团队', D8:'方差下限',
+  D9:'协同（配合）', D10:'规则风险', D11:'可操作性'
+};
+/* 分位数（线性插值；arr 需已升序） */
+function pvQ(sorted, p){
+  if(!sorted.length) return 0;
+  const i = (sorted.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
+}
+function pvPearson(xs, ys){
+  const n = xs.length; if(n < 3) return 0;
+  let mx = 0, my = 0;
+  for(let i = 0; i < n; i++){ mx += xs[i]; my += ys[i]; }
+  mx /= n; my /= n;
+  let sxy = 0, sxx = 0, syy = 0;
+  for(let i = 0; i < n; i++){ const a = xs[i] - mx, b = ys[i] - my; sxy += a * b; sxx += a * a; syy += b * b; }
+  return (sxx <= 0 || syy <= 0) ? 0 : sxy / Math.sqrt(sxx * syy);
+}
+/* D 项取值（与雷达同源：D10/D11 定性折算，D9 取配合值） */
+function pvD(c, k){
+  const d = c.d || {};
+  if(k === 'D10') return ({高:2, 中:5, 低:8})[d.d10] || 5;
+  if(k === 'D11') return ({高:8, 中:5, 低:2})[d.d11] || 5;
+  if(k === 'D9') return d.d9 ? d.d9.b : 3;
+  const m = k.match(/D(\d)/), o = m && d['d' + m[1]];
+  return (o && o.v != null) ? o.v : null;
+}
+function pvFmt(v, d){ return (v == null || isNaN(v)) ? '—' : v.toFixed(d == null ? 1 : d); }
+const sgn = v => (v >= 0 ? '+' : '') + (+v).toFixed(2);
+
+function renderPool(){
+  const rated = DATA.filter(c => c.score && c.tier && c.tier !== 'unrated');
+  const num = c => parseFloat(c.score);
+  const scores = rated.map(num).filter(v => !isNaN(v)).sort((a, b) => a - b);
+  const nAll = DATA.length, nRated = rated.length;
+  const mid = pvQ(scores, .5);
+  const mean = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+  const sd = scores.length ? Math.sqrt(scores.reduce((a, b) => a + (b - mean) * (b - mean), 0) / scores.length) : 0;
+  const top = scores.length ? scores[scores.length - 1] : 0;
+  const bot = scores.length ? scores[0] : 0;
+
+  /* ---- 阵营 / 设计者统计 ---- */
+  function groupBy(key){
+    const g = new Map();
+    DATA.forEach(c => {
+      const k = (key === 'designer' ? (c.designer || '未知') : (c.faction || '未知'));
+      if(!g.has(k)) g.set(k, []);
+      g.get(k).push(c);
+    });
+    return [...g.entries()].map(([k, list]) => {
+      const sc = list.filter(c => c.score).map(num).filter(v => !isNaN(v));
+      const cnt = {};
+      ORDER.forEach(t => { cnt[t] = list.filter(c => c.tier === t).length; });
+      return { k, n: list.length, rated: sc.length, avg: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : NaN, med: sc.length ? pvQ(sc.slice().sort((a,b)=>a-b), .5) : NaN, cnt };
+    }).sort((a, b) => (b.avg || 0) - (a.avg || 0));
+  }
+  const facs = groupBy('faction');
+  const auth = groupBy('designer');
+
+  /* ---- 八轴全池基准 ---- */
+  const axisStat = PV_AXES.map(ax => {
+    const vs = rated.map(c => c.radarPct && c.radarPct[ax]).filter(v => v != null).sort((a, b) => a - b);
+    return vs.length
+      ? { ax, n: vs.length, min: vs[0], p25: pvQ(vs, .25), mid: pvQ(vs, .5), p75: pvQ(vs, .75), max: vs[vs.length - 1] }
+      : { ax, n: 0, min: 0, p25: 0, mid: 0, p75: 0, max: 0 };
+  });
+  const weakest = axisStat.slice().sort((a, b) => a.mid - b.mid)[0];
+  const strongest = axisStat.slice().sort((a, b) => b.mid - a.mid)[0];
+
+  /* ---- 各档平均（八轴） ---- */
+  const tierAvg = ['t0','t1','t2','t3','t4','t5'].map(t => {
+    const list = DATA.filter(c => c.tier === t && c.radarPct);
+    if(!list.length) return null;
+    const o = { t, n: list.length };
+    PV_AXES.forEach(ax => { o[ax] = list.reduce((s, c) => s + (c.radarPct[ax] || 0), 0) / list.length; });
+    return o;
+  }).filter(Boolean);
+
+  /* ---- 强弱关联（Pearson） ---- */
+  const corr = Object.keys(PV_DNAME).map(k => {
+    const xs = [], ys = [];
+    rated.forEach(c => {
+      const v = pvD(c, k), s = num(c);
+      if(v != null && !isNaN(v) && !isNaN(s)){ xs.push(v); ys.push(s); }
+    });
+    return { k, n: xs.length, r: pvPearson(xs, ys) };
+  }).sort((a, b) => Math.abs(b.r) - Math.abs(a.r));
+
+  /* ---- 极值 ---- */
+  const extremes = PV_AXES.map(ax => {
+    const list = rated.filter(c => c.radarPct && c.radarPct[ax] != null);
+    if(!list.length) return { ax, hi: null, lo: null };
+    const s = list.slice().sort((a, b) => b.radarPct[ax] - a.radarPct[ax]);
+    return { ax, hi: s[0], lo: s[s.length - 1] };
+  });
+
+  /* ---- 稳定性 ---- */
+  const risk = { 高: 0, 中: 0, 低: 0 };
+  DATA.forEach(c => { const v = c.d && c.d.d10; if(v && risk[v] != null) risk[v]++; });
+  const cay = { 主场景: 0, 最坏切片: 0, 阶段B: 0 };
+  DATA.forEach(c => { const v = c.mc && c.mc.d8_caliber; if(v && cay[v] != null) cay[v]++; });
+  const ciW = DATA.map(c => (c.mc && c.mc.s_p05 != null && c.mc.s_p95 != null) ? (+c.mc.s_p95 - +c.mc.s_p05) : null)
+    .filter(v => v != null).sort((a, b) => a - b);
+  const medCI = ciW.length ? pvQ(ciW, .5) : NaN;
+  const nRecomputable = DATA.filter(c => {
+    if(!c.score || !c.mc || c.mc.score_calc == null) return false;
+    return Math.abs(parseFloat(c.score) - c.mc.score_calc) < 0.05;
+  }).length;
+  const nBoundary = DATA.filter(c => c.mc && c.mc.boundary).length;
+  const nP4 = DATA.filter(c => c.mc && c.mc.p_diff >= 0.4).length;
+  const nMismatch = DATA.filter(c => c.mc && c.mc.gate_mismatch).length;
+  /* 榜单分 ≠ 算式分：被降档（取新档上沿）或规则风险封顶改写过的卡（不是错误，见 算法说明「从算式值到榜单分」） */
+  const nRewritten = DATA.filter(c => {
+    const m = c.mc; if(!m || m.s==null) return false;
+    const sc = parseFloat(c.score); if(!isFinite(sc)) return false;
+    return Math.abs(sc - (+m.s)) > 0.05;
+  }).length;
+  const nConflict = DATA.filter(c => c.mc && c.mc.template_conflict).length;
+  const nUndecided = DATA.filter(c => c.tier === 'undecided').length;
+  const nLowConf = DATA.filter(c => c.lowConf).length;
+  const nStale = DATA.filter(c => c.stale).length;
+  const nNoImg = DATA.filter(c => c.noImg || !c.img).length;
+  /* D1 漂移统计（弱点1/20）：录入 D1 − 锚点反算值，属设计内专家判定裕度 */
+  const driftAbs = DATA.map(c => (c.mc && c.mc.d1_drift != null) ? Math.abs(+c.mc.d1_drift) : null)
+    .filter(v => v != null).sort((a, b) => a - b);
+  const nDrift = driftAbs.length;
+  const nDriftGt01 = driftAbs.filter(x => x > 0.1).length;
+  const nDriftGt03 = driftAbs.filter(x => x > 0.3).length;
+  const maxDrift = driftAbs.length ? driftAbs[driftAbs.length - 1] : 0;
+  /* D10 子类（弱点19）：措辞歧义正例数（取自详表「描述歧义」字段，已自动派生） */
+  const nAmbig = DATA.filter(c => c.mc && c.mc.d10_sub && c.mc.d10_sub['措辞歧义'] === '有').length;
+
+  /* ================= 渲染 ================= */
+  let h = '';
+
+  /* 1. 概览 */
+  h += '<div class="pv-card"><div class="pv-lead">'
+    + '本榜收录 <b>' + nAll + ' 张</b>，其中 <b>' + nRated + ' 张</b>走完评级流程、' + nUndecided + ' 张未定档（描述说不清，判不了，不算弱）。'
+    + '已评级的分数中位 <b>' + pvFmt(mid) + '</b>、均值 ' + pvFmt(mean) + '、标准差 <b>' + pvFmt(sd, 2) + '</b>，'
+    + '最高 <b>' + pvFmt(top) + '</b>、最低 ' + pvFmt(bot) + '——跨度 ' + pvFmt(top - bot) + ' 分，相当于 '
+    + Math.round((top - bot) / 1.0) + ' 个档带的宽度。'
+    + '全池最薄的一块能力是「<b>' + weakest.ax + '</b>」（中位 ' + Math.round(weakest.mid) + '%），最厚的是「' + strongest.ax + '」（中位 ' + Math.round(strongest.mid) + '%）。'
+    + '</div><div class="pv-note">分数是「可裁决强度轮廓」的脑杀定位，不是胜率；标准差衡量的是这个池<b>分化有多大</b>，不是好坏。</div></div>';
+
+  /* 2. 档位分布 */
+  h += '<div class="pv-hd">一、档位分布 <em>这个池强弱结构长什么样</em></div><div class="pv-card"><div class="pv-dist">';
+  const mxT = Math.max(1, ...ORDER.map(t => DATA.filter(c => c.tier === t).length));
+  ORDER.forEach(t => {
+    const n = DATA.filter(c => c.tier === t).length;
+    if(!n) return;
+    const w = n / mxT * 100;
+    h += '<div class="pv-drow"><span class="lb">' + TIER_LABEL[t] + '</span>'
+      + '<span class="tk"><i style="width:' + w.toFixed(1) + '%;background:' + TIER_COLOR[t] + '"></i></span>'
+      + '<span class="vl">' + n + ' 张 · ' + (n / nAll * 100).toFixed(0) + '%</span></div>';
+  });
+  h += '</div><div class="pv-note">T0 为空＝这批没有「明显超模到要马上削」的卡；T2 占 ' + (DATA.filter(c=>c.tier==='t2').length / nAll * 100).toFixed(0) + '% 说明绝大多数卡落在「能稳定打出自己打法」这一段——这是设计意图集中、也是评级区分度最吃紧的地方。</div></div>';
+
+  /* 3. 阵营 / 设计者 */
+  function matrix(rows, title, sub){
+    const cols = ORDER.filter(t => rows.some(r => r.cnt[t]));
+    const mx = Math.max(1, ...rows.flatMap(r => cols.map(t => r.cnt[t])));
+    let s = '<div class="pv-hd">' + title + ' <em>' + sub + '</em></div><div class="pv-card"><table class="pv-tbl"><thead><tr><th>分组</th><th class="num">张数</th>'
+      + cols.map(t => '<th class="num">' + TIER_LABEL[t] + '</th>').join('')
+      + '<th class="num">平均分</th><th class="num">中位</th></tr></thead><tbody>';
+    rows.forEach(r => {
+      s += '<tr><td>' + esc(r.k) + '</td><td class="num">' + r.n + '</td>'
+        + cols.map(t => {
+            const v = r.cnt[t];
+            if(!v) return '<td class="num" style="color:var(--muted)">·</td>';
+            const op = 0.16 + Math.min(v / mx, 1) * 0.5;
+            return '<td class="num"><span class="pv-cell" style="background:' + TIER_COLOR[t] + ';opacity:' + op.toFixed(2) + ';color:#fff">' + v + '</span></td>';
+          }).join('')
+        + '<td class="num">' + pvFmt(r.avg) + '</td><td class="num">' + pvFmt(r.med) + '</td></tr>';
+    });
+    return s + '</tbody></table><div class="pv-note">' + (rows.length > 6
+      ? '按平均分排序。分组张数差异大时，平均分受个别极端卡影响也大，配合中位一起看。'
+      : '按平均分排序。张数少的组别只看档位分布形状，不要直接比平均分。') + '</div></div>';
+  }
+  h += matrix(facs, '二、阵营 × 档位', '哪个阵营整体偏强 / 偏弱');
+  h += matrix(auth, '三、设计者 × 档位', '按设计者分组的客观统计，不代表评价');
+
+  /* 4. 八轴基准 */
+  h += '<div class="pv-hd">四、全池能力基准 <em>八根轴各自的中位与四分位：这个池整体擅长什么、缺什么</em></div><div class="pv-card">';
+  axisStat.forEach(a => {
+    h += '<div class="pv-axis"><span class="lb">' + a.ax + '</span>'
+      + '<span class="tk">'
+      + '<i style="left:' + a.min.toFixed(1) + '%;width:' + Math.max(0, a.max - a.min).toFixed(1) + '%;background:#3a4250"></i>'
+      + '<i class="bd" style="left:' + a.p25.toFixed(1) + '%;width:' + Math.max(1, a.p75 - a.p25).toFixed(1) + '%;background:#e05c4a"></i>'
+      + '<u style="left:' + a.mid.toFixed(1) + '%"></u>'
+      + '</span>'
+      + '<span class="vl">中位 ' + Math.round(a.mid) + '（' + Math.round(a.p25) + '–' + Math.round(a.p75) + '）</span></div>';
+  });
+  h += '<div class="pv-note">深色细条＝全池最小到最大；红条＝中间一半的卡落在哪；白线＝中位。'
+    + '「' + weakest.ax + '」中位只有 ' + Math.round(weakest.mid) + '%，说明大多数卡这块是空的——不是算错，是这类能力本来就稀少。'
+    + '看一张卡强不强要看档位，看它「靠什么活着」才看这些轴。</div></div>';
+
+  /* 5. 各档能力画像 */
+  h += '<div class="pv-hd">五、各档平均能力画像 <em>强档和弱档的差距，主要差在哪几根轴</em></div><div class="pv-card"><table class="pv-tbl"><thead><tr><th>轴</th>'
+    + tierAvg.map(o => '<th class="num">' + TIER_LABEL[o.t] + '<br><span style="font-weight:400">n=' + o.n + '</span></th>').join('')
+    + '<th class="num">T1−T3</th></tr></thead><tbody>';
+  PV_AXES.forEach(ax => {
+    const v1 = tierAvg.find(o => o.t === 't1'), v3 = tierAvg.find(o => o.t === 't3');
+    const diff = (v1 && v3) ? v1[ax] - v3[ax] : NaN;
+    h += '<tr><td>' + ax + '</td>'
+      + tierAvg.map(o => '<td class="num">' + Math.round(o[ax]) + '</td>').join('')
+      + '<td class="num" style="color:' + (diff > 0 ? '#ff8d7e' : '#9ecbff') + '">' + (isNaN(diff) ? '—' : (diff > 0 ? '+' : '') + Math.round(diff)) + '</td></tr>';
+  });
+  const t1row = tierAvg.find(o => o.t === 't1'), t3row = tierAvg.find(o => o.t === 't3');
+  const diffs = (t1row && t3row) ? PV_AXES.map(ax => ({ ax, d: t1row[ax] - t3row[ax] })).sort((a, b) => b.d - a.d) : [];
+  const gapHi = diffs[0], gapLo = diffs[diffs.length - 1];
+  h += '</tbody></table><div class="pv-note">「T1−T3」= 强势档比平均档在这根轴上高出多少个百分点。'
+    + (gapHi ? '这批卡里差得最大的是「<b>' + gapHi.ax + '</b>」（' + (gapHi.d > 0 ? '+' : '') + Math.round(gapHi.d) + '）——从平均升到强势，主要靠这一项；'
+      + '差最小的是「' + gapLo.ax + '」（' + (gapLo.d > 0 ? '+' : '') + Math.round(gapLo.d) + '），强弱跟它关系不大。' : '')
+    + 'T4 只有 5 张，均值受单卡影响极大，只看形状不要看绝对值。</div></div>';
+
+  /* 6. 强弱关联 */
+  h += '<div class="pv-hd">六、什么在决定强度 <em>各评分项与最终分数的相关系数（−1 到 +1）</em></div><div class="pv-card">';
+  corr.forEach(o => {
+    const w = Math.abs(o.r) * 50;
+    const left = o.r >= 0 ? 50 : 50 - w;
+    const col = o.r >= 0 ? '#e05c4a' : '#5b9bd8';
+    h += '<div class="pv-corr"><span class="lb">' + PV_DNAME[o.k] + '</span>'
+      + '<span class="tk"><i style="left:' + left.toFixed(1) + '%;width:' + w.toFixed(1) + '%;background:' + col + '"></i><u></u></span>'
+      + '<span class="vl">' + (o.r >= 0 ? '+' : '') + o.r.toFixed(2) + '</span></div>';
+  });
+  const d1r = corr.find(o => o.k === 'D1');
+  h += '<div class="pv-note">相关系数只说明「同向变化的程度」，不是因果。'
+    + '<b>收益期望</b>是分数的定义项，但它与最终分数的相关只有 <b>' + (d1r ? (d1r.r >= 0 ? '+' : '') + d1r.r.toFixed(2) : '—') + '</b>'
+    + '——因为分数还要过修正位移与封顶，其余评分项同样在决定档位，这也是这份榜单不只看收益的原因。'
+    + '正相关越强，说明「这项越强、卡越强」在这批卡里越成立；负相关说明两项反向。'
+    + '样本 ' + nRated + ' 张，|r| 小于 0.2 基本可视为无关（n≈105 时 p=0.05 的临界值约 0.19）。'
+    + (corr.length ? '<br>这张图里最强的是「<b>' + PV_DNAME[corr[0].k] + '</b>」（' + sgn(corr[0].r) + '），'
+      + '最弱的是「' + PV_DNAME[corr[corr.length - 1].k] + '」（' + sgn(corr[corr.length - 1].r) + '）；'
+      + '其中 ' + corr.filter(o => Math.abs(o.r) < 0.2).length + ' 项的 |r| < 0.2，落在噪声区，不要当结论读。' : '')
+    + '<br>「规则风险」在详表里是低/中/高三级，这里按 低=8／中=5／高=2 折成数值再算相关，只用于看方向。</div></div>';
+
+  /* 7. 极值 */
+  h += '<div class="pv-hd">七、各项能力的池内极值 <em>每根轴最强 / 最弱的卡</em></div><div class="pv-card"><div class="pv-ext">';
+  extremes.forEach(e => {
+    h += '<span class="lb">' + e.ax + '</span>'
+      + (e.hi ? '<span class="hi">' + e.hi.radarPct[e.ax] + '% · ' + esc(e.hi.name) + '（' + TIER_LABEL[e.hi.tier] + '）</span>' : '<span>—</span>')
+      + (e.lo ? '<span class="lo">' + e.lo.radarPct[e.ax] + '% · ' + esc(e.lo.name) + '</span>' : '<span>—</span>');
+  });
+  h += '</div><div class="pv-note">用来找「这张卡的招牌」和「完全不会」。极值卡不一定是最强的卡——单项满格但其它项全空，仍然可能是 T4。</div></div>';
+
+  /* 8. 稳定性 */
+  h += '<div class="pv-hd">八、结论有多稳 <em>数据缺口与不确定度，全部照实列出</em></div><div class="pv-card"><table class="pv-tbl"><tbody>'
+    + '<tr><td>分数可复算（榜单值 = clamp(D1+Δ)，偏差 &lt;0.05）</td><td class="num">' + nRecomputable + ' / ' + nRated + '</td><td style="color:var(--muted)">构建时逐张校验，不过就打 !!；推导链在详情页顶部</td></tr>'
+    + '<tr><td>90% 推演区间宽度（全池中位）</td><td class="num">' + pvFmt(medCI, 1) + ' 分</td><td style="color:var(--muted)">＝D1 的诚实不确定度：越窄说明这张卡的收益越算得死</td></tr>'
+    + '<tr><td>边界卡（分数区间跨档，P∈[0.2,0.8]）</td><td class="num">' + nBoundary + ' / ' + nRated + '</td><td style="color:var(--muted)">详情页有各档概率条；概率不自动改档</td></tr>'
+    + '<tr><td>需双评审复核（P ≥ 0.4）</td><td class="num">' + nP4 + '</td><td style="color:var(--muted)">两名评审独立重算 D1，差 &gt;0.5 取低者</td></tr>'
+    + '<tr><td>分数经规则改写（降档取上沿 / 风险封顶）</td><td class="num">' + nRewritten + ' / ' + nRated + '</td><td style="color:var(--muted)">不是算错：取分规则唯一，其余 ' + (nRated - nRewritten) + ' 张直接取算式值；详见「算法说明 · 从算式值到榜单分」</td></tr>'
+    + '<tr><td>复算不一致（程序档位 ≠ 定位行）</td><td class="num">' + nMismatch + '</td><td style="color:var(--muted)">应为 0，非 0 即挂起待裁</td></tr>'
+    + '<tr><td>模板与现值冲突（&gt;0.3）</td><td class="num">' + nConflict + '</td><td style="color:var(--muted)">应为 0</td></tr>'
+    + '<tr><td>低置信（D1 无实测样本、按同类卡推算）</td><td class="num">' + nLowConf + ' / ' + nAll + '</td><td style="color:var(--muted)">批次级结构性缺口，不是逐卡偷懒</td></tr>'
+    + '<tr><td>规则风险 高 / 中 / 低</td><td class="num">' + risk.高 + ' / ' + risk.中 + ' / ' + risk.低 + '</td><td style="color:var(--muted)">高＝涉主赢法被压档；中＝已按最受限读法结算</td></tr>'
+    + '<tr><td>D8 口径（主场景 / 最坏切片 / 阶段B）</td><td class="num">' + cay.主场景 + ' / ' + cay.最坏切片 + ' / ' + cay.阶段B + '</td><td style="color:var(--muted)">全库统一最坏切片（最保守口径，无逐卡例外）；<b>跨卡 D8 现在口径一致、可直接比较</b></td></tr>'
+    + '<tr><td>强度分来源（录入值为输入，锚点表为校准基线）</td><td class="num">' + nRated + ' 张</td><td style="color:var(--muted)">强度分以详表录入值为评分输入；收益→强度分 锚点表是校准基线，不回归拟合（弱点20）。同收益不同卡强度分可差 1 档，录入值与基线之差＝设计内<b>专家判定裕度</b>，非锚点误差。全池 |漂移|&gt;0.1 有 ' + nDriftGt01 + ' 张、&gt;0.3 有 ' + nDriftGt03 + ' 张、最大 ±' + maxDrift.toFixed(2) + '，已逐卡写入详情页推导链，<b>不静默改分</b></td></tr>'
+    + '<tr><td>描述风险子类（措辞歧义 / 规则集边缘 / 结构缺口）</td><td class="num">' + nAmbig + ' 张</td><td style="color:var(--muted)">描述风险仅低/中/高三级。子类已自动派生：措辞歧义取详表「描述歧义」字段（全池 ' + nAmbig + ' 张「有」）；规则集边缘／结构缺口本榜单无实测数据可标注，依专家判定（弱点19）</td></tr>'
+    + '<tr><td>边界卡不确定度（P 传播维度A + Δ）</td><td class="num">' + nBoundary + ' 张</td><td style="color:var(--muted)">维度A 模板区间 + Δ（rules.json mc.delta_spread 假设带抽样）已纳入传播；硬门槛（R层/D10/将池依赖）仍为点估计，真实不确定度仍部分低估，待弱点15 定稿误差模型</td></tr>'
+    + '<tr><td>待重跑 / 无卡图</td><td class="num">' + nStale + ' / ' + nNoImg + '</td><td style="color:var(--muted)">无卡图不影响评分，只影响展示</td></tr>'
+    + '</tbody></table><div class="pv-note">这一块是榜单的「体检报告」：能用数字说清的不确定性都摆出来，而不是只给一个看起来精确的分数。</div></div>';
+
+  /* 9. 算法自检 */
+  const auAll = AUDIT || [];
+  const auBad = auAll.filter(a => !a.ok).length;
+  h += '<div class="pv-hd">九、算法自检 <em>构建时逐条验过，不是口头保证</em></div><div class="pv-card">'
+    + '<div class="au-sum ' + (auBad ? 'au-bad' : 'au-ok') + '">'
+    + (auBad ? '<b>' + auBad + '</b> 条未通过，其余 ' + (auAll.length - auBad) + ' 条通过'
+             : '全部 <b>' + auAll.length + '</b> 条通过')
+    + '<span>构建时重跑一遍；任意一条不成立，控制台打 !!，页面就标出来</span></div>'
+    + '<table class="pv-tbl"><thead><tr><th>检查项</th><th class="num">本次结果</th><th>它在防什么</th></tr></thead><tbody>';
+  auAll.forEach(a => {
+    h += '<tr class="' + (a.ok ? 'au-ok' : 'au-bad') + '"><td><i class="au-ic"></i>' + esc(a.name) + '</td>'
+      + '<td class="au-d">' + esc(a.detail) + '</td>'
+      + '<td style="color:var(--muted)">' + esc(a.note) + '</td></tr>';
+  });
+  h += '</tbody></table><div class="pv-note">它们验的是这份榜单自己声称的东西：分数能复算、档带自洽、评分项完整、轴值只有一个来源、'
+    + '每张定档卡都有推演区间、排序单调、未定档卡不硬给分。任何一条挂了，说明页面上有说法和实现对不上——这比分数高低更该先修。</div></div>';
+
+  $('#poolBody').innerHTML = h;
+}
+
+function openPool(){
+  renderPool();
+  const pv = $('#poolview');
+  pv.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  pv.scrollTop = 0;
+}
+function closePool(){
+  $('#poolview').classList.remove('show');
+  document.body.style.overflow = '';
+}
+$('#poolBtn').onclick = openPool;
+$('#poolBackBtn').onclick = closePool;
+
+/* ---------- 分享：复制公网链接 ----------
+   页面可能是用 localhost 打开的，直接 copy 地址栏会拿到 localhost，
+   在 QQ / 微信里只会提示「复制到浏览器打开」。所以这里读同目录的
+   tunnel_url.txt（守护进程写入的公网地址）拼出可直开的链接。 */
+$('#shareBtn').onclick = async ()=>{
+  const btn = $('#shareBtn'), old = btn.textContent;
+  const say = t=>{ btn.textContent = t; setTimeout(()=>{ btn.textContent = old; }, 2400); };
+  let base = '';
+  try{
+    const r = await fetch('tunnel_url.txt?_=' + Date.now(), {cache:'no-store'});
+    if(r.ok){
+      const t = (await r.text()).trim();
+      if(/^https?:\/\//i.test(t)) base = t.replace(/\/+$/, '');
+    }
+  }catch(e){}
+  if(!base && location.protocol === 'https:') base = location.origin;   /* 本身就在公网地址上 */
+  if(!base){ say('请先双击 打开网站.bat'); return; }
+  const url = base + '/gradient.html';
+  btn.title = url;
+  const ok = ()=>say('已复制公网链接');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(ok).catch(()=>{ fallbackCopy(url); ok(); });
+  } else { fallbackCopy(url); ok(); }
+};
+
+/* ---------- 搜索 ---------- */
+$('#search').addEventListener('input', e=>{ curKeyword = e.target.value; renderMain(); });
+$('#sortDirBtn').onclick = ()=>{ curSortDir = -curSortDir; renderSort(); renderMain(); };
+
+/* 侧栏统计：按 DATA 现算，避免手写数字随批次数变化而过期 */
+function fillSidebarStats(){
+  const mid = DATA.filter(c => c.d && c.d.d10 === '中');
+  const ok  = mid.filter(c => c.tier !== 'undecided' && c.tier !== 'unrated');
+  const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = v; };
+  set('stMid', mid.length);
+  set('stMidOk', ok.length);
+  set('stCapMid', CAP_MID);
+  set('stMidT2', ok.filter(c => c.tier === 't2').length);
+  set('stMidT3', ok.filter(c => c.tier === 't3').length);
+  set('stMidUnd', mid.filter(c => c.tier === 'undecided').length);
+  /* 收录总数 / 已评级 / 待评级：随批次自动更新，避免正文手写数字过期 */
+  set('stTotal', DATA.length);
+  set('stRated', DATA.filter(c => c.tier !== 'unrated').length);
+  set('stUnrated', DATA.filter(c => c.tier === 'unrated').length);
+}
+
+renderSort();
+renderMode();
+renderSidebar();
+fillSidebarStats();
+applyMode();
+renderMain();
+if(location.hash.indexOf('#card=')===0){ openCard(decodeURIComponent(location.hash.slice(6)), {replace:true}); }
+</script>
+
+<!-- 测试评分：纯本地跑分（5人身份场 + 2v2 对照），端口自 mc_tier.py，纯函数、无联网 -->
+<div id="testScoreModal" class="ts-mask" hidden>
+  <div class="ts-panel">
+    <div class="ts-head">
+      <strong>试算半成品设计</strong>
+      <button class="ts-x" type="button" onclick="closeTestScore()">×</button>
+    </div>
+    <div class="ts-body">
+      <p class="ts-hint">三步：把<b>技能描述</b>粘进下面 → 点「估分并跑分」→ 看这张卡落在几档。<b>全部在你的浏览器里算</b>，不联网、不用装东西、也不会上传到任何地方。彩条＝落到各档的概率，量的是「这个档位有多稳」，不是胜率。</p>
+      <p class="ts-hint" style="color:#e8a33d">这是<b>量级参考，不是定论</b>：光看文字读不出精确强度（具体误差见结果下方）。所以算完请打开下面「手动微调」，按你自己的判断改。</p>
+      <div class="ts-row"><label>技能文本<span class="ts-sub">整段粘进来就行，<b>多个技能一行一个</b>；带「技能描述1：」「【技能名】」「技能名：」这些行头会按技能分开算，不分行会当成一个技能连起来算</span></label><textarea id="tsText" placeholder="例：造成3点伤害，然后摸2张牌。&#10;若目标体力小于你，改为弃置其2张牌。"></textarea></div>
+      <div class="ts-actions"><button class="ts-run" type="button" onclick="runTestFromText()">估分并跑分</button><button type="button" onclick="tsClearText()">清空文本</button></div>
+      <div id="tsEvid" class="ts-evid" hidden></div>
+
+      <div class="ts-foldbar">
+        <button type="button" id="tsAdvBtn" class="ts-foldbtn" onclick="tsToggleAdv()" aria-expanded="false" aria-controls="tsAdv"><span class="ts-arrow">▸</span>手动微调（上一步已经替你填好，直接改就行）</button>
+      </div>
+      <div id="tsAdv" hidden>
+        <p class="ts-hint ts-hint-sm">每项 <b>0–10 分，越高越强</b>；拿不准就留 5（中等水平）。改完点最下面的按钮重新算。</p>
+        <div class="ts-dgrid" id="tsDgrid"></div>
+        <div class="ts-row"><label>偏科修正<span class="ts-sub">明显短板要扣分、样样合格可加分；<b>0 = 不修正</b></span></label><input id="tsDelta" type="number" step="0.1" min="-1.2" max="1.2" value="0" oninput="tsPreClear()"></div>
+        <div class="ts-row ts-row-top"><label>常用项<span class="ts-sub">点一下加进上面的数值，可多选，合计最多 ±1.2</span></label><div class="ts-presets" id="tsPresets"></div></div>
+        <div class="ts-row"><label>每轮收益<span class="ts-sub">可选，一般不用填。「收益期望」是由它换算出来的原始值：<b>0＝几乎不产出，2.3＝榜单天花板</b>。填 1.5~2.2 表示一回合大概在这个区间、拿不准具体几；留空就按上面的收益期望自动推</span></label><input id="tsA" type="text" placeholder="如 1.5~2.2"></div>
+        <div class="ts-gates">
+          <label>规则风险<span class="ts-sub">会不会被钻空子、要不要裁判另判</span><select id="tsR"><option>低</option><option>中</option><option>高</option></select></label>
+          <label>依赖特定卡<span class="ts-sub">不配某张牌就打不出来</span><select id="tsDep"><option>低</option><option>中</option><option>高</option></select></label>
+          <label>上手难度<span class="ts-sub">0＝一看就会 5＝要先学一局</span><select id="tsUp"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+          <label>精通难度<span class="ts-sub">会用之后还要练多久</span><select id="tsMas"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+        </div>
+        <div class="ts-actions"><button class="ts-run" type="button" onclick="runTestScore()">按上面的数值算分</button><button type="button" onclick="tsReset()">全部清空</button></div>
+      </div>
+      <div id="tsResult" class="ts-result"></div>
+    </div>
+  </div>
+</div>
+<style>
+.ts-mask{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;z-index:9999;padding:4vh 12px;overflow:auto;}
+.ts-mask[hidden]{display:none;}
+.ts-panel{width:min(880px,96vw);background:var(--panel,#1b1e26);color:var(--fg,#eee);border:1px solid var(--border,#333);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.5);max-height:92vh;display:flex;flex-direction:column;}
+.ts-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border,#333);font-size:15px;}
+.ts-x{border:none;background:transparent;color:var(--fg,#eee);font-size:22px;line-height:1;cursor:pointer;}
+.ts-body{padding:14px 16px;overflow:auto;}
+.ts-hint{margin:0 0 12px;font-size:12.5px;line-height:1.6;color:var(--muted,#9aa);}
+.ts-hint code{background:var(--panel2,#262a34);padding:1px 5px;border-radius:4px;}
+.ts-hint-sm{font-size:11.5px;margin:0 0 8px;}
+/* 每项输入下面那行小字：解释「这项到底在说什么」，不外行话不写这里 */
+.ts-sub{display:block;font-size:10.5px;line-height:1.4;opacity:.62;font-weight:400;margin-top:1px;}
+/* 折叠条：默认只留「贴文本 → 看档位」，细项收起来，免得一进去就是十几个数字 */
+.ts-foldbar{margin:14px 0 6px;border-top:1px dashed var(--border,#333);padding-top:9px;}
+.ts-foldbtn{background:none;border:none;color:var(--muted,#9aa);font-size:12.5px;cursor:pointer;padding:3px 0;display:inline-flex;align-items:center;gap:6px;}
+.ts-foldbtn:hover{color:var(--fg,#eee);}
+.ts-foldbtn .ts-arrow{display:inline-block;transition:transform .15s;font-size:10px;}
+.ts-foldbtn[aria-expanded="true"] .ts-arrow{transform:rotate(90deg);}
+/* 常用项跟「偏科修正」共用同一套行结构，不再用写死的左边距对齐（换宽度就错位） */
+.ts-row-top{align-items:flex-start;}
+.ts-presets{display:flex;flex-wrap:wrap;gap:6px;flex:1;}
+.ts-pre{background:var(--panel2,#262a34);border:1px solid var(--border,#333);color:var(--muted,#9aa);border-radius:999px;padding:4px 10px;font-size:11.5px;cursor:pointer;line-height:1.3;}
+.ts-pre:hover{color:var(--fg,#eee);}
+.ts-pre[aria-pressed="true"]{border-color:var(--accent,#5b8cff);color:var(--fg,#eee);background:rgba(91,140,255,.18);}
+.ts-pre b{color:var(--warn,#e8a33d);font-weight:700;margin-left:5px;}
+.ts-form{display:flex;flex-direction:column;gap:10px;}
+.ts-row{display:flex;align-items:center;gap:10px;}
+.ts-row label{width:260px;flex:none;font-size:12.5px;color:var(--muted,#9aa);display:flex;flex-direction:column;gap:1px;line-height:1.35;}
+.ts-row input{background:var(--panel2,#262a34);border:1px solid var(--border,#333);color:var(--fg,#eee);border-radius:7px;padding:6px 8px;font-size:13px;flex:1;max-width:300px;}
+.ts-dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:8px;}
+.ts-dcell{display:flex;align-items:center;gap:6px;background:var(--panel2,#262a34);border:1px solid var(--border,#333);border-radius:8px;padding:5px 8px;font-size:12px;}
+.ts-dcell label{display:flex;flex-direction:column;line-height:1.2;color:var(--muted,#9aa);min-width:80px;}
+.ts-dcell label small{font-size:9.5px;opacity:.62;line-height:1.25;}
+.ts-dname{font-size:11.5px;color:var(--fg,#eee);font-weight:600;}
+.ts-tag{font-style:normal;font-size:9px;opacity:.5;font-weight:400;margin-left:4px;}
+.ts-dcell input{flex:1;width:54px;background:var(--panel,#1b1e26);border:1px solid var(--border,#333);color:var(--fg,#eee);border-radius:5px;padding:3px 5px;font-size:13px;text-align:center;}
+.ts-dcell select{flex:1;width:64px;background:var(--panel,#1b1e26);border:1px solid var(--border,#333);color:var(--fg,#eee);border-radius:5px;padding:3px 5px;font-size:12px;}
+.ts-dcell.pair input{width:40px;}
+.ts-gates{display:flex;flex-wrap:wrap;gap:12px;padding:8px 0;}
+.ts-gates label{font-size:12.5px;color:var(--muted,#9aa);display:flex;flex-direction:column;gap:3px;min-width:150px;}
+.ts-gates select{background:var(--panel2,#262a34);border:1px solid var(--border,#333);color:var(--fg,#eee);border-radius:6px;padding:4px 6px;font-size:12.5px;}
+.ts-actions{display:flex;gap:10px;margin:12px 0;}
+.ts-run{background:var(--accent,#5b8cff);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:14px;cursor:pointer;}
+.ts-run+.ts-actions button,.ts-actions button{background:var(--panel2,#262a34);border:1px solid var(--border,#333);color:var(--fg,#eee);border-radius:8px;padding:8px 16px;font-size:13px;cursor:pointer;}
+.test-btn{width:100%;background:var(--accent,#5b8cff);color:#fff;border:none;border-radius:8px;padding:9px 12px;font-size:13px;cursor:pointer;}
+.ts-result{margin-top:6px;}
+.ts-cmp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px;}
+.ts-cmp .ts-card{border:1px solid var(--border,#333);border-radius:10px;padding:10px 12px;background:var(--panel2,#262a34);}
+.ts-cmp h4{margin:0 0 6px;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ts-cmp .ts-tbadge{display:inline-block;padding:2px 9px;border-radius:6px;font-weight:800;color:#0d0f12;}
+.ts-cmp .ts-score{font-size:22px;font-weight:800;}
+.ts-cmp .ts-bnd{font-size:11px;color:var(--muted,#9aa);}
+/* 雷达区：与上面两张档位卡隔一条虚线（那段是「结论」，这段是「结论长什么样」） */
+.ts-radar{margin-top:16px;border-top:1px dashed var(--border,#333);padding-top:12px;}
+.ts-radar .rb-pair>.rb:first-child{border-left:none;padding-left:0;}
+.ts-radar .rb-pair>.rb+.rb{padding-left:14px;border-left:1px solid var(--border,#333);}
+.ts-radar .rb-cap>.rb{border-left:none;padding-left:0;}
+.ts-radar .unc-note{margin-top:10px;line-height:1.6;}
+@media(max-width:640px){.ts-radar .rb-pair{flex-wrap:wrap;}.ts-radar .rb-pair>.rb+.rb{border-left:none;padding-left:0;}}
+.ts-row textarea{background:var(--panel2,#262a34);border:1px solid var(--border,#333);color:var(--fg,#eee);border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;flex:1;max-width:560px;min-height:74px;resize:vertical;line-height:1.55;}
+.ts-evid{font-size:12px;line-height:1.65;color:var(--muted,#9aa);background:var(--panel2,#262a34);border:1px solid var(--border,#333);border-radius:8px;padding:8px 10px;margin:0;}
+.ts-evid[hidden]{display:none;}
+.ts-evid b{color:var(--fg,#eee);}
+.ts-evid .eq{color:var(--accent,#5b8cff);font-weight:700;}
+.ts-evid .chip{display:inline-block;margin:2px 6px 2px 0;padding:1px 8px;border-radius:999px;background:rgba(127,127,127,.18);color:var(--fg,#eee);font-size:11.5px;}
+.ts-evid .evline{margin-top:4px;}
+@media(max-width:560px){.ts-cmp{grid-template-columns:1fr;}.ts-row label{width:auto;}.ts-row{flex-direction:column;align-items:stretch;}.ts-row textarea{max-width:none;}}
+</style>
+<script>
+/* ===== 测试评分：本地跑分（身份场 + 2v2 对照）。端口自 mc_tier.py，纯函数，只读注入的 RULES/MC ===== */
+/* 面板上的名字必须是外行话：只用「这一项在看什么」，不出现 D1–D11 之类的编号。
+   sub 是给第一次用的人的一句话解释（同一件事只在这一处解释）。 */
+const TS_D_CFG = [
+  {k:'d1', label:'收益期望', sub:'一回合能多赚多少',type:'num'},
+  {k:'d2', label:'防御生存', sub:'挨打扛不扛得住',type:'num'},
+  {k:'d3', label:'先手压制', sub:'开局压不压得住',type:'num'},
+  {k:'d4', label:'控制拆解', sub:'拆牌、封技、翻面',type:'num'},
+  {k:'d5', label:'启动速度', sub:'几回合能转起来',type:'num',rec:true},
+  {k:'d6', label:'续航换牌', sub:'摸牌与续力',type:'num'},
+  {k:'d7', label:'辅助团队', sub:'能帮队友多少',type:'num'},
+  {k:'d8', label:'方差下限', sub:'手气差会不会崩',type:'num'},
+  {k:'d9a',label:'单打',     sub:'不靠队友时',type:'num'},
+  {k:'d9b',label:'配合',     sub:'靠队友时',type:'num'},
+  {k:'d10',label:'描述歧义', sub:'低＝写得清楚，高＝能被钻空子',type:'lvl'},
+  {k:'d11',label:'结算自主', sub:'触发后有没有得选',type:'lvl',rec:true}
+];
+/* 偏科修正的常用项：数值就是算法里的固定位移，这里只负责「说人话 + 少让人算」。
+   v 可叠加，合计按 ±1.2 封顶（规则本身如此，不是这里加的）。 */
+const TS_PRESETS = [
+  {v:-0.9, t:'六成对局转不起来', h:'主引擎经常不上线，或打到一半就崩'},
+  {v:-0.9, t:'只能靠特定队友',   h:'没有配合件，主赢法就不成立'},
+  {v:-0.5, t:'要四回合才启动',   h:'引擎起得慢，前几轮基本空过'},
+  {v:-0.9, t:'主公向又脆又慢',   h:'既扛不住、也起不来'},
+  {v:-0.5, t:'上手到精通差一档', h:'操作复杂，会玩和不会玩差很多'},
+  {v:-0.5, t:'触发后没得选',     h:'基本自动结算，没有有意义的抉择'},
+  {v:+0.5, t:'各位置都强、没短板',h:'哪个位置都能打，且没有明显弱项'}
+];
+const TS_PRE_ON = new Set();
+function tsBuildPresets(){
+  const box=document.getElementById('tsPresets'); if(!box) return;
+  box.innerHTML = TS_PRESETS.map(function(p,i){
+    return '<button type="button" class="ts-pre" aria-pressed="'+(TS_PRE_ON.has(i)?'true':'false')+'"'
+      + ' title="'+p.h+'" onclick="tsPreClick('+i+')">'+p.t+'<b>'+(p.v>0?'+':'')+p.v+'</b></button>';
+  }).join('');
+}
+function tsPreClick(i){
+  if(TS_PRE_ON.has(i)) TS_PRE_ON.delete(i); else TS_PRE_ON.add(i);
+  let sum=0; TS_PRE_ON.forEach(function(j){ sum+=TS_PRESETS[j].v; });
+  sum=Math.max(-1.2, Math.min(1.2, sum));
+  const inp=document.getElementById('tsDelta');
+  if(inp) inp.value=String(Math.round(sum*10)/10);
+  tsBuildPresets();
+}
+/* 手改数值＝改用了自定义值：把已点亮的常用项清掉，免得「显示 -1.2、其实只勾了 -0.9」 */
+function tsPreClear(){
+  if(!TS_PRE_ON.size) return;
+  TS_PRE_ON.clear(); tsBuildPresets();
+}
+function tsToggleAdv(){
+  const box=document.getElementById('tsAdv'), btn=document.getElementById('tsAdvBtn');
+  if(!box) return;
+  box.hidden=!box.hidden;
+  if(btn) btn.setAttribute('aria-expanded', box.hidden?'false':'true');
+}
+function tsAtoD1(a){
+  const AN = RULES.anchors.points, sl = RULES.anchors.slope_above, tail = AN[AN.length-1];
+  if(a<=0) return 0;
+  if(a>tail[0]) return tail[1]+(a-tail[0])*sl;
+  for(let i=0;i<AN.length-1;i++){const x0=AN[i][0],y0=AN[i][1],x1=AN[i+1][0],y1=AN[i+1][1]; if(x0<=a&&a<=x1) return y0+(a-x0)/(x1-x0)*(y1-y0);}
+  return tail[1];
+}
+function tsD1toA(d1){
+  const AN = RULES.anchors.points, sl = RULES.anchors.slope_above, tail = AN[AN.length-1];
+  if(d1<=0) return 0;
+  if(d1>tail[1]) return tail[0]+(d1-tail[1])/sl;
+  for(let i=0;i<AN.length-1;i++){const x0=AN[i][0],y0=AN[i][1],x1=AN[i+1][0],y1=AN[i+1][1]; if(y0<=d1&&d1<=y1) return x0+(d1-y0)/(y1-y0)*(x1-x0);}
+  return tail[0];
+}
+function tsBandOf(s){const L=RULES.band.lo; for(let t=0;t<L.length;t++){if(s>=L[t]) return t;} return 5;}
+function tsCalcScore(s,tier,r){
+  const lo = tier<5?RULES.band.lo[tier]:0.0, hi=RULES.band.hi[tier];
+  let why='in-band', cap=null, v=s;
+  if(s>hi){v=hi;why='demote';} else if(s<lo){v=lo;why='below';}
+  const rc = RULES.risk_cap[r];
+  if(rc!=null && v>rc){cap=rc; v=cap; why='cap-'+(r==='中'?'mid':'high');}
+  v=Math.max(lo,v); v=Math.round(v*10)/10; if(v>hi) v=Math.floor(hi*10)/10;
+  return {v,why,cap};
+}
+function tsGateCtx(d){
+  return {
+    d10: d.d10||'低', d9a: d.d9a!=null?d.d9a:6.0, d9b: d.d9b!=null?d.d9b:6.0,
+    r: d.r||'低', dep: d.dep||'低', up: d.up!=null?d.up:null, mas: d.mas!=null?d.mas:null,
+    d2: d.d2!=null?d.d2:5.0, d6: d.d6!=null?d.d6:5.0, d8: d.d8!=null?d.d8:5.0, d8_caliber:'最坏切片'
+  };
+}
+function tsDemote(t,g){
+  const G=RULES.gates;
+  if(g.r==='高' && t<G.risk_high_floor) t=G.risk_high_floor;
+  if(g.r==='中' && t<G.risk_mid_floor) t=G.risk_mid_floor;
+  if(g.d10==='高' && t<G.ambig_high_floor) t=G.ambig_high_floor;
+  if(t===1){ const t1=G.t1; const ok=(g.d9a>=t1.d9_bare_min)||(g.d9b>=t1.d9_pair_min && g.d9a>t1.d9_bare_min_if_paired);
+    const gap=(g.up!=null&&g.mas!=null)?Math.abs(g.up-g.mas):0;
+    if(!ok||g.d10==='高'||g.r!=='低'||g.dep==='高'||gap>=t1.mastery_gap_max) t=2; }
+  if(t===2){ const t2=G.t2; const miss=[]; if(g.d2<t2.d2_min) miss.push('D2'); if(g.d6<t2.d6_min) miss.push('D6'); if(miss.length) t=3; }
+  /* 这里原先还有一句「上手=精通 时把档位拉到那个数」：那条规则在详表里用的是**档位**（T1/T3），
+     而试算面板的「上手难度／精通难度」是 0–5 的**难度刻度**，同名不同义。
+     原样搬过来会把「难度 3」当成「档位 T3」，用户一改难度分数就整档塌掉，所以试算路径不执行它。 */
+  return t;
+}
+function tsModeProfile(dv, cfg){
+  const base=cfg.base||{}; const non=Object.keys(base).filter(k=>k!=='d1'); if(!non.length) return null;
+  let sw=0; for(const k of non) sw+=base[k]; if(sw<=0) return null;
+  let tot=0, got=0;
+  for(const k of non){ const i=parseInt(k.replace('d','')); const v=dv['d'+i]; if(v==null) return null; tot+=v*base[k]; got++; }
+  return got===non.length ? tot/sw : null;
+}
+function tsComputeModes(d1, delta, g, dv, s_pt, s_lo, s_hi, profileMean){
+  const out={}; const MODES=RULES.modes;
+  for(const mode in MODES){
+    const cfg=MODES[mode]; if(typeof cfg!=='object'||cfg===null) continue;
+    let pen=0; for(const ax in (cfg.penalty||{})){ const i=parseInt(ax.replace('d','')); const lvl=g['d'+i]||'低'; pen += ((cfg.penalty[ax]&&cfg.penalty[ax][lvl]!=null)?cfg.penalty[ax][lvl]:0); }
+    const base=cfg.base||{d1:1.0}; const hasProfile=Object.keys(base).some(k=>k!=='d1');
+    let S;
+    if(hasProfile){ const prof=tsModeProfile(dv,cfg); if(prof==null) continue; const sens=cfg.sens!=null?cfg.sens:1.0; S=(d1+(cfg.use_delta?delta:0)) + sens*(prof-profileMean) - pen; }
+    else { S=d1+(cfg.use_delta?delta:0)-pen; }
+    const t_hat=tsDemote(tsBandOf(S), g);
+    const cs=tsCalcScore(S, t_hat, g.r);
+    const half_lo=s_pt-s_lo, half_hi=s_hi-s_pt;
+    const lo2=S-half_lo, hi2=S+half_hi;
+    const blo=t_hat<RULES.band.lo.length?RULES.band.lo[t_hat]:0.0;
+    const bhi=t_hat<RULES.band.hi.length?RULES.band.hi[t_hat]:blo;
+    const overlap=Math.max(0, Math.min(hi2,bhi)-Math.max(lo2,blo));
+    const width=hi2-lo2;
+    const p_diff=width>0?(1-overlap/width):0;
+    const boundary = p_diff>=0.2 && p_diff<=0.8;
+    out[mode]={tier:t_hat, score:cs.v, score_why:cs.why, cap:cs.cap, s:Math.round(S*100)/100, s_min:Math.round(lo2*100)/100, s_max:Math.round(hi2*100)/100, p_diff:Math.round(p_diff*1000)/1000, boundary, delta:Math.round(delta*100)/100, d1:Math.round(d1*100)/100};
+  }
+  return out;
+}
+const TS_PROFILE2 = (typeof MC!=='undefined' && MC && MC._profileMean2v2!=null) ? MC._profileMean2v2 : 5.0;
+function tsScore(d){
+  const d1=+d.d1, delta=+d.delta, g=tsGateCtx(d);
+  const s_pt=d1+delta;
+  let aLo, aHi;
+  if(d.aLo!=null && d.aHi!=null){ aLo=+d.aLo; aHi=+d.aHi; }
+  else { const ac=tsD1toA(d1); aLo=ac-0.2; aHi=ac+0.2; }
+  const a_c=(aLo+aHi)/2;
+  const s_center=tsAtoD1(a_c);
+  const s_lo=s_pt+tsAtoD1(aLo)-s_center, s_hi=s_pt+tsAtoD1(aHi)-s_center;
+  const modes = tsComputeModes(d1, delta, g, d, s_pt, s_lo, s_hi, TS_PROFILE2);
+  const NSAMP=6000, spread=(RULES.mc&&RULES.mc.delta_spread)||0;
+  const samples=[];
+  for(let i=0;i<NSAMP;i++){ const a=aLo+Math.random()*(aHi-aLo); const dd=delta+(Math.random()*2-1)*spread; samples.push(d1+dd+tsAtoD1(a)-s_center); }
+  for(const mode in modes){
+    const m=modes[mode]; const cfg=RULES.modes[mode];
+    const base=cfg.base||{d1:1.0}; const hasProfile=Object.keys(base).some(k=>k!=='d1');
+    const shift = hasProfile ? (m.s - s_pt) : 0;
+    const pct={}; let arr=[];
+    for(const s_i of samples){ const s2=s_i+shift; arr.push(s2); const t=tsDemote(tsBandOf(s2), g); pct[t]=(pct[t]||0)+1; }
+    const tot=arr.length; const p={}; for(const k in pct){ if(pct[k]/tot>0.004) p[k]=Math.round(pct[k]/tot*1000)/1000; }
+    arr.sort((x,y)=>x-y);
+    const q=p_=>Math.round(arr[Math.min(tot-1,Math.max(0,Math.floor(p_*tot)))]*100)/100;
+    m.p=p; m.s_p05=q(0.05); m.s_p95=q(0.95);
+  }
+  return modes;
+}
+function tsCard(name, m){
+  const base = Object.assign({}, m, {
+    gate_mismatch:false, tier_hat:m.tier, mismatch_reason:'',
+    gate_notes:[], d10_sub:{}, d1_drift:null, no_interval:false,
+    template_conflict:false, delta_hits:[], d8:5.0, d8_caliber:'最坏切片'
+  });
+  return { name:name, score:String(m.score), tier:'t'+m.tier, boundary:m.boundary, mc:base, mcMode:base };
+}
+/* ===== 试算卡的雷达：把网格里的 11 项折成正式卡同一套轴值与派生项 =====
+   公式全部读 rules.json（radar.weights / axis_range / capability.formula），
+   与 build_gallery.js 的 calcAxisRaw / calcRadarPct / calcCapability 同源，不另立刻度。
+   两处必须替用户补，因为试算卡没有详表原文——两者都不许拿中位充数：
+     · 回复轴：正式卡读详表的「能力雷达·回复」；试算按文字有没有读到回血给推定值
+       （有回血 → 4+2×点数、封顶 8；只读到免伤 → 2；都没有 → 0，池内 109 张里 23 张就是 0）；
+     · 身份适应性：来自详表场景结论，试算没有 → 派生雷达那根轴标「未评」、顶点归零。
+   回复的推定口径会在结果下方写明，读者能看见这一轴是怎么来的。 */
+const TS_D10V={高:2,中:5,低:8};
+const TS_AXIS_FB=(RULES.radar&&RULES.radar.axis_fallback)||[1.5,8.5];
+function tsDv(rec,key){
+  const d=rec.d||{};
+  if(key==='回复判定') return rec.radar['回复']||0;
+  if(key==='D10') return TS_D10V[d.d10]||5;
+  if(key==='D11') return TS_D10V[d.d11]||5;
+  if(key==='D9b') return d.d9?d.d9.b:3;
+  if(key==='D9a') return d.d9?d.d9.a:3;
+  const m=key.match(/D(\d)/);
+  if(!m) return 0;
+  const cell=d['d'+m[1]];
+  if(cell==null) return 0;
+  /* 详表给的是 {v:分数, note:…}，网格给的是纯数字——两种都收 */
+  return typeof cell==='object' ? (+cell.v||0) : (+cell||0);
+}
+function tsAxisRaw(rec){
+  const R=RULES.radar, out={}, d6=tsDv(rec,'D6');
+  for(const axis in R.weights){
+    let sum=0; R.weights[axis].forEach(([k,w])=>{ sum+=tsDv(rec,k)*w; });
+    sum+=Math.max(0,d6-R.d6_base)*R.spill*((R.deck_share[axis])||0);   /* 过牌外溢：多摸的牌按功能占比渗到各轴 */
+    out[axis]=Math.min(10,sum);
+  }
+  return out;
+}
+function tsRadarPct(ax){
+  const out={}, RG=(RULES.radar&&RULES.radar.axis_range)||{};
+  for(const axis in ax){
+    const r=RG[axis]||TS_AXIS_FB;
+    out[axis]=Math.max(0,Math.min(100,Math.round((ax[axis]-r[0])/(r[1]-r[0])*100)));
+  }
+  return out;
+}
+function tsCapability(rec,ax){
+  const F=RULES.capability.formula, raw={}, out={};
+  for(const k in F){
+    let s=0; F[k].forEach(([src,w])=>{ s+=(src[0]==='@'?tsDv(rec,src.slice(1)):(ax[src]||0))*w; });
+    raw[k]=s;
+  }
+  for(const k of Object.keys(raw)){
+    out[k]=Math.round(raw[k]*10)/10;
+    const th=RULES.capability.th[k];
+    out[k+'Lv']=th?(raw[k]>=th[0]?'高':(raw[k]>=th[1]?'中':'低')):'–';
+  }
+  out.ident=null; out.identLv=null;   /* 没有详表场景结论 → 未评，不填中位冒充数据 */
+  return out;
+}
+/* 阶段画像：正式卡按「本批排名百分位」加权；radarPct 是轴值的单调变换，对它取池内名次与用轴值排序等价 */
+let TS_AX_SORTED=null;
+function tsPctRank(sorted,v){
+  const n=sorted.length; if(!n) return 50;
+  let lo=0,hi=n; while(lo<hi){ const m=(lo+hi)>>1; if(sorted[m]<v) lo=m+1; else hi=m; } const lt=lo;
+  let lo2=0,hi2=n; while(lo2<hi2){ const m=(lo2+hi2)>>1; if(sorted[m]<=v) lo2=m+1; else hi2=m; }
+  return (lt+(lo2-lt)/2)/n*100;
+}
+function tsPhaseOf(pct){
+  if(!TS_AX_SORTED){
+    TS_AX_SORTED={};
+    const D=(typeof DATA!=='undefined'&&DATA)?DATA:[];
+    ABIL_CORE.forEach(x=>{
+      TS_AX_SORTED[x[0]]=D.map(d=>d.radarPct&&d.radarPct[x[0]]).filter(v=>v!=null).sort((a,b)=>a-b);
+    });
+  }
+  const out={}, W=RULES.phase.weights;
+  for(const k in W){ let s=0; W[k].forEach(([ax,w])=>{ s+=tsPctRank(TS_AX_SORTED[ax]||[],pct[ax]||0)*w; }); out[k]=Math.round(s*10)/10; }
+  return out;
+}
+function tsRadarCard(d,e,m){
+  const rec={d:{},radar:{}};
+  ['d1','d2','d3','d4','d6','d7','d8'].forEach(k=>{ rec.d[k]={v:+d[k]||0}; });
+  rec.d.d9={a:+d.d9a||0, b:+d.d9b||0};
+  rec.d.d10=d.d10||'低'; rec.d.d11=d.d11||'低';
+  const M=(e&&e.m)||{};
+  rec.radar['回复']=M.heal?Math.min(8,4+2*M.heal):(M.immune?2:0);
+  const ax=tsAxisRaw(rec), pct=tsRadarPct(ax);
+  /* tierUp/tierMas 不传：正式卡那两个字段是「档位」，试算面板那两个是「难度 0–5」，
+     同名不同义，传过去会印出「上手→精通 1 → 2（操作能涨 1 档）」这种假的档位结论。 */
+  return {name:'', tier:'t'+m.tier, boundary:m.boundary, mcMode:m,
+          d:rec.d, radar:{'回复':rec.radar['回复']}, radarPct:pct,
+          cap:tsCapability(rec,ax), ph:tsPhaseOf(pct), dep:d.dep||'低'};
+}
+/* ===== 文本 → D 值估算（先把文本估成可核对的初值，再走同一套 tsScore 跑分） =====
+   原则：只抽「可量化的机制」；估出每轮收益 A 后走 rules.json 的 anchors 得 D1（不另造刻度）；
+   其余轴按命中机制加减；每条推定都留依据。所有值都是初值，网格里可手改后再跑。 */
+function tsCnNum(s){
+  const M={'零':0,'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+  if(/^\d+(?:\.\d+)?$/.test(s)) return +s;
+  if(s==='半') return 0.5;
+  if(s.indexOf('十')>=0){
+    const p=s.split('十');
+    const a=p[0]?(M[p[0]]!=null?M[p[0]]:NaN):1;
+    const b=p[1]?(M[p[1]]!=null?M[p[1]]:0):0;
+    return isNaN(a)?NaN:a*10+b;
+  }
+  let n=0;
+  for(const ch of s){ if(M[ch]==null) return NaN; n=n*10+M[ch]; }
+  return n;
+}
+function tsNorm(t){
+  return String(t||'')
+    .replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0))
+    .replace(/([零一二两三四五六七八九十半]+)(?=\s*(?:点|张|层|名|个|枚|次|轮|回合))/g,(m)=>{ const v=tsCnNum(m); return isNaN(v)?m:String(v); });
+}
+function tsZeroM(){ return {dmg:0,selfDmg:0,draw:0,heal:0,armor:0,mark:0,disc:0,consume:0,ctrl:0,support:0,cond:0,rand:0,vague:0,trig:0,immune:0,combo:0,maxHit:0}; }
+/* 「这算不算读出了收益」。只收产生价值/改变牌局的机制；
+   cond/vague/trig/rand 只是修饰语，读到它们不等于读懂了效果——
+   把它们算进覆盖率，会让「将至多X名任意角色进行【缠绕】」这种纯自定义措辞也算读懂了。 */
+const TS_QUANT=new Set(['dmg','draw','heal','armor','mark','disc','gain','ctrl','support','convert','skip','judge']);
+/* 按「技能描述N：」切技能块（带该块的技能类别，用于限定技/觉醒技降权）；无技能标记则整篇一块。
+   除了正式存档的「技能名／技能描述」两行式，还要认卡面式的一行一技能：
+   【技能名】… ／「技能1：…」／「锦帆：…」——以前只认「技能描述N：」，
+   别的格式整篇并成一块，多技能会被当成「全部效果同时生效」叠加，把分推高。 */
+function tsSplitSkills(t){
+  const lines=String(t||'').split('\n');
+  const out=[]; let lastCat='', cur=null, pending='';
+  const open=desc=>{ cur={cat:lastCat, desc:desc}; out.push(cur); };
+  for(const ln of lines){
+    const s=ln.trim(); if(!s) continue;
+    let m;
+    if((m=s.match(/^技能类别\s*\d*\s*[:：]\s*(.*)$/))){ lastCat=m[1]; continue; }
+    /* 技能名单独一行时只当分隔：后面紧跟「技能描述」就用描述建块，不把名字算成一个技能 */
+    if((m=s.match(/^技能名\s*\d*\s*[:：]\s*(.*)$/))){ pending=m[1]; cur=null; continue; }
+    if((m=s.match(/^技能描述\s*\d*\s*[:：]\s*(.*)$/))){ pending=''; open(m[1]); continue; }
+    if(/^(名称|阵营|干员职称|类别|引言|设计者|血量|护甲|空血|改色|源文件|#)/.test(s)){ cur=null; pending=''; continue; }
+    if(/^【[^】]{1,14}】/.test(s)){ pending=''; open(s); continue; }
+    if((m=s.match(/^技能\s*\d+\s*[:：.、]?\s*/))){ pending=''; open(s.slice(m[0].length)||s); continue; }
+    if((m=s.match(/^([^\s，。；、：:！？（）()]{2,10})\s*[:：]\s*(\S[\s\S]*)$/))){
+      /* 「锦帆：出牌阶段限一次…」名字与描述同一行；句子中间的连接词开头不算技能名 */
+      if(!/^(目标|若|如果|否则|然后|其|该|当|每|你可|你可以|以此法|若如此做)$/.test(m[1])){ pending=''; open(m[2]); continue; }
+    }
+    if(cur){ cur.desc+=s; continue; }
+    open((pending?pending+'：':'')+s); pending='';
+  }
+  if(!out.length) out.push({cat:'', desc:String(t||'')});
+  return out;
+}
+/* 单条描述 → 收益贡献（可为负＝纯代价，由块级 clamp 兜底）＋ 累计机制计数 */
+function tsClauseA(cl, M, evid){
+  const push=(k,v)=>{ M[k]+=v; evid.push({k:k,v:v,cl:cl.length>44?cl.slice(0,44)+'…':cl}); };
+  const aoe=/所有|全体|每名|任意名|所有角色|全体角色|所有敌方/.test(cl);
+  const multi=/依次|分别|各造成|重复/.test(cl);
+  let m;
+  /* 自身代价：受到/失去 N 点伤害|体力，先从伤害总数扣掉 */
+  let sd=0; const sdRe=/(?:受到|失去)\s*(\d+(?:\.\d+)?)\s*点(?:伤害|体力)/g;
+  while((m=sdRe.exec(cl))) sd+=+m[1];
+  const all=[...cl.matchAll(/(\d+(?:\.\d+)?)\s*点(?:伤害|直接伤害)/g)].map(x=>+x[1]);
+  const dm=Math.max(0, all.reduce((x,y)=>x+y,0) - sd);
+  /* 「造成伤害」与「【杀】造成伤害」不是一回事：
+     杀要命中判定、要距离、能被【闪】响应，1 点伤害≈1 张牌（0.55）；
+     直接造成伤害绕过了这三层，对手只能拿【桃】硬吃，1 点≈2 分。
+     早先一律按 0.55 算，把「每回合稳定 1 点直伤」这种卡压到 D1=5（2 档），
+     与池内同类卡（汉娜 6.0、雷电影 6.5）差 1.5 分以上。 */
+  const isSlash=/【杀】|使用杀|打出杀/.test(cl);
+  if(sd>0) push('selfDmg',sd);
+  if(dm>0){ push('dmg',dm); M.maxHit=Math.max(M.maxHit, all.length?Math.max(...all):0); }
+  let dr=0; const drRe=/(?:摸|抽取?)\s*(\d+(?:\.\d+)?)\s*张/g; while((m=drRe.exec(cl))) dr+=+m[1];
+  if(/摸\s*X\s*张/i.test(cl)) dr+=2;                       /* X 变量按 2 张估（可手改） */
+  /* 「摸等量的牌」「摸相同数量的牌」：数量跟着同一句里的代价走，按 2 张估（与 X 同口径）。
+     孙权制衡整条就是这一句，原来一个字都读不出。 */
+  if(!dr && /摸\s*(?:等量|相同数量)的?牌/.test(cl)) dr+=2;
+  /* 「观看牌堆顶的 N 张牌…然后交给/获得」＝实际拿到 N 张，归到摸牌。
+     郭嘉遗计、诸葛亮观星都属这一类。 */
+  const lookRe=/观看[^。；]{0,10}?(\d+(?:\.\d+)?)\s*张/g; while((m=lookRe.exec(cl))) dr+=+m[1];
+  if(/观看[^。；]{0,10}?牌堆顶[^。；]{0,6}?[Xx]\s*张/.test(cl)) dr+=2;
+  /* 「少摸 N 张」是代价，别当成摸牌收益（许褚裸衣整条因此被读成「摸 1 张」）。 */
+  let dl=0; const dlRe=/(?:少摸|少弃)\s*(\d+(?:\.\d+)?)\s*张/g; while((m=dlRe.exec(cl))) dl+=+m[1];
+  if(dl>0){ dr=Math.max(0, dr-dl); push('consume',dl); }
+  if(dr>0) push('draw',dr);
+  /* 「造成的伤害+1」：数字不在「N 点伤害」里，而在增量上（裸衣、骄矜一类）。
+     单独累加，在 ca 里按同一套伤害单价折算，不能 push 进 M.dmg（那不是「N 点伤害」）。 */
+  let incDmg=0; const incRe=/(?:造成|受到)的?伤害\s*[+＋]\s*(\d+(?:\.\d+)?)/g;
+  while((m=incRe.exec(cl))) incDmg+=+m[1];
+  if(incDmg>0) evid.push({k:'dmg',v:incDmg,cl:'伤害+'+incDmg+'：'+(cl.length>30?cl.slice(0,30)+'…':cl)});
+  /* 负面：减体力上限。恃勇纯负面，这条不识别就会被当成「没认出 → 中等偏上」。 */
+  const upRe=/减\s*(\d+(?:\.\d+)?)\s*点体力上限|失去\s*(\d+(?:\.\d+)?)\s*点体力上限/g;
+  while((m=upRe.exec(cl))){ const v=+(m[1]||m[2]); sd+=v; push('selfDmg',v); }
+  let hl=0; const hlRe=/(?:回复|恢复)\s*(\d+(?:\.\d+)?)\s*点(?:体力|生命|血)?/g; while((m=hlRe.exec(cl))) hl+=+m[1];
+  if(hl>0) push('heal',hl);
+  let ar=0; const arRe=/(?:获得|得到)?\s*(\d+(?:\.\d+)?)\s*点(?:护甲|格挡|护盾)/g; while((m=arRe.exec(cl))) ar+=+m[1];
+  if(!ar && /护甲|格挡|护盾/.test(cl)) ar=1;
+  if(ar>0) push('armor',ar);
+  let mk=0; const mkRe=/(\d+(?:\.\d+)?)\s*层/g; while((m=mkRe.exec(cl))) mk+=+m[1];
+  if(mk>0) push('mark',mk);
+  /* 拆对手牌：弃置其/目标/每名…N 张；自己代价：弃置 N 张（中间无目标词）或「消耗 N 张」 */
+  let dc=0, cs=0;
+  const oppRe=/(?:弃置|弃掉)\s*(?:其|目标|每名|所有|敌方|对手|其他角色)[^。；]{0,4}?(\d+(?:\.\d+)?)\s*张/g;
+  while((m=oppRe.exec(cl))) dc+=+m[1];
+  if(!dc && /令[^。；]{0,10}弃置|角色弃置/.test(cl)){ const g=/(?:弃置|弃掉)[^。；]{0,6}?(\d+(?:\.\d+)?)\s*张/g; while((m=g.exec(cl))) dc+=+m[1]; }
+  const selfRe=/(?:弃置|弃掉|消耗)\s*(\d+(?:\.\d+)?)\s*张/g;
+  while((m=selfRe.exec(cl))) cs+=+m[1];
+  if(dc>0) push('disc',dc);
+  if(cs>0) push('consume',cs);
+  /* 「N 枚」标记/资源：获得是收益，移去/消耗是代价 */
+  let moGain=0;
+  let mo=0; const moRe=/(\d+(?:\.\d+)?)\s*枚/g; while((m=moRe.exec(cl))) mo+=+m[1];
+  if(mo>0){ if(/移去|消耗|弃置/.test(cl)){ cs+=mo; } else { moGain=mo; push('mark',mo); } }
+  /* 「无法打出」不并入控制：那是自己伤害必中（算收益，见 SEM「不可闪避」），
+     并在这里会把同一句话算两遍。 */
+  let ct=0; const ctRe=/(眩晕|冰冻|翻面|封印|沉默|无法(?:行动|使用|指定|响应)|不能(?:行动|使用|指定|响应)|跳过[^。；]{0,4}阶段|移出游戏|失去(?:所有)?技能)/g;
+  while((m=ctRe.exec(cl))) ct++;
+  if(ct>0) push('ctrl',ct);
+  /* 帮队友：「令某角色回复/摸牌」之外，「将手牌交给其他角色」同样是给队友资源
+     （仁德的整条技能就是这一句，原来一个字都认不出）。 */
+  const sp=((/(?:令|使|让)?\s*(?:一名|所有|任意|其他)\s*(?:角色|友方|队友)[^。；]{0,10}(?:回复|摸|获得|护甲|格挡)/.test(cl))
+    || /交给[^。；]{0,8}?(?:其他|任意|一名)[^。；]{0,4}?角色/.test(cl)) ? 1 : 0;
+  if(sp) push('support',1);
+  /* 牌转化：「将一张×牌当【Y】使用或打出」——不增加牌数，只增加同一张牌的选择权，
+     折 0.5/张。标准包里武圣/龙胆/倾国/国色/奇袭/急救都靠这一句，
+     原来只认「视为使用」，一字之差全漏判成「没认出机制」。 */
+  let cv=0;
+  if(/(?:将|把)[^。；]{0,14}?(?:当|当作|视为)[^。；]{0,10}?(?:使用|打出)/.test(cl)) cv=1;
+  if(cv>0) push('convert',cv);
+  /* 获得牌：「获得伤害来源的一张牌／造成伤害的牌」是从别人那里拿（拆 1 张 + 自己得 1 张）；
+     「获得你的一张手牌」是自己的牌在换手，不算净收益，排除。 */
+  let gn=0;
+  if(!/获得\s*(?:你|自己)的/.test(cl)){
+    const gnRe=/获得[^。；]{0,10}?(\d+(?:\.\d+)?)\s*张/g;
+    while((m=gnRe.exec(cl))) gn+=+m[1];
+    if(!gn && /获得[^。；]{0,8}?(?:伤害来源|造成伤害的牌|此牌|判定牌)/.test(cl)) gn=1;
+  }
+  if(gn>0) push('gain',gn);
+  /* 跳过阶段：克己「跳过弃牌阶段」＝手牌上限抬高，属防御/续航，不是控制。 */
+  let skp=0;
+  if(/跳过[^。；]{0,10}?阶段/.test(cl)) skp=1;
+  if(skp) push('skip',skp);
+  /* 判定：技能里带判定＝多一次牌运兑现，本身不产生收益，折 0.3。
+     必须排在 SEM「不可闪避」之前判定，否则铁骑会被算成两笔。 */
+  let jd=0;
+  if(/进行判定|判定牌/.test(cl)) jd=1;
+  if(jd) push('judge',jd);
+  let cd=0; const cdRe=/(若|如果|只要|当[^。；]{0,8}时|则|否则|除非)/g; while((m=cdRe.exec(cl))) cd++;
+  if(cd>0) push('cond',cd);
+  let rn=0; const rnRe=/随机/g; while((m=rnRe.exec(cl))) rn++;
+  if(rn>0) push('rand',rn);
+  let vg=0; const vgRe=/(一些|若干|适当|合理|任意数量|等量|某个|某些)/g; while((m=vgRe.exec(cl))) vg++;
+  if(vg>0) push('vague',vg);
+  let tg=0; const tgRe=/(回合开始时|回合结束时|结束阶段|准备阶段|判定阶段|摸牌阶段|弃牌阶段|出牌阶段|每当|在[^。；]{0,6}后)/g; while((m=tgRe.exec(cl))) tg++;
+  if(tg>0) push('trig',tg);
+  if(/(免疫|无法被指定|不能成为[^。；]{0,14}的目标|防止[^。；]{0,4}伤害|减伤|不受[^。；]{0,4}影响)/.test(cl)) push('immune',1);
+  if(/(指定[^。；]{0,4}牌|特定|同阵营|同名|另一名角色|配合|与此牌)/.test(cl)) push('combo',1);
+  /* 语义机制：没有数字但价值明确（濒死/封技/额外发动…），每条最多计一次 */
+  let sem=0;
+  const SEM=[
+    [/濒死|直接死亡|立即死亡/,1.2,'致命'],
+    [/技能失效|失去(?:所有)?技能/,0.9,'封技'],
+    /* 「无法打出【闪】」不是「控制对手」，而是自己这笔伤害必中——按强收益算，
+       且必须排在通用「无法响应」之前，否则会被 0.5 那条先吃掉。 */
+    [/无法打出|不能打出|不可闪避|无法使用【闪】|不能使用【闪】/,0.9,'不可闪避'],
+    [/任意数量|无限(?:次|使用)|不计(?:入)?(?:使用)?次数|不计数|无次数限制|不受(?:使用)?次数限制/,0.8,'无限使用'],
+    [/扣置|置于[^。；]{0,6}武将牌旁|置于[^。；]{0,4}旁/,0.7,'扣置'],
+    [/额外发动|额外使用|额外出牌|再次发动/,0.6,'额外发动'],
+    [/【提前】|【延滞】|提前|延滞|额外(?:的)?回合/,0.6,'时序操控'],
+    [/复制|再次使用/,0.6,'复制'],
+    [/视为[^。；]{0,6}?(?:使用|打出)/,0.5,'转化'],
+    [/获得[^。；]{0,6}技能|视为[^。；]{0,4}拥有/,0.5,'获得技能'],
+    [/不可被响应|无法响应|不能被响应|必中/,0.5,'必中'],
+    [/无视(?:防具|距离|护甲)/,0.3,'无视防御'],
+    [/不计入?距离|不需要计算距离|无距离限制/,0.3,'无距离限制'],
+    /* 无双：要连出两张【闪】才算躲掉，命中率与消耗都翻倍 */
+    [/连续(?:使用|打出)?\s*两张【闪】|需要?\s*两张【闪】/,0.9,'不可闪避'],
+    /* 流离一类「把杀转给别人」＝用一张牌换掉一次攻击，标准包里的防御强技 */
+    [/转移给|转移至[^。；]{0,6}?角色/,0.6,'转移'],
+    /* 离间一类「令两名角色决斗」＝借刀，属控制而非伤害 */
+    [/令[^。；]{0,12}?进行决斗/,0.8,'挑斗'],
+    [/距离\s*[-－＋+]\s*1/,0.25,'距离'],
+    [/手牌上限\s*[-－]\s*1|手牌上限-1/,-0.2,'手牌上限']
+  ];
+  SEM.forEach(function(p){
+    if(cv>0 && p[2]==='转化') return;   /* 牌转化已按 cv 计，别再按「视为使用」重复加一次 */
+    if(p[0].test(cl)){ sem+=p[1]; evid.push({k:'sem',v:p[1],cl:p[2]+'：'+(cl.length>30?cl.slice(0,30)+'…':cl)}); }
+  });
+  /* 标度对齐 rules.json 的 A→D1 锚点：1 张牌≈1 分、1 点直伤≈2 分、
+     1 点杀伤害≈0.55 分、1 点护甲≈0.45 分。
+     弃牌代价分两档：出牌阶段里「你可以弃一张手牌」是可选项，手牌本来就要弃到血上限，
+     真实成本远低于一张牌（0.25）；强制消耗/移去才是真花钱（0.4）。 */
+  const dmgUnit = isSlash ? 0.55 : 2.0;
+  const csCost  = (/你可以|可选/.test(cl) && /手牌/.test(cl)) ? 0.25 : 0.4;
+  let ca = (dm+incDmg)*dmgUnit + (aoe?dm*0.30:0) + (multi?dm*0.18:0)
+         + dr*0.6 + hl*0.6 + ar*0.45 + mk*0.3 + moGain*0.3 + dc*0.5 + ct*0.8 + sp*0.4
+         + cv*0.5 + gn*0.6 + skp*0.5 + jd*0.3
+         + sem
+         - cs*csCost - sd*0.5;
+  if(/改为|否则|或者/.test(cl)) ca*=0.7;          /* 互斥分支：只算一份 */
+  if(/(若|如果|只要|除非)/.test(cl)) ca*=0.7;  /* 条件生效：按七折计 */
+  return ca;
+}
+/* 单技能 → 每轮收益 A。
+   「①②③ 选择一项」是互斥分支：只算最强一支，其余按 12% 计（共用同一份手牌/回合）。
+   早先逐句累加，把三选一技能当成三个效果全生效，汉娜这类卡被估到 A=2.8（D1=8.0），
+   而详表给的是 6.0。 */
+function tsSkillA(desc, M, evid){
+  const raw=String(desc||'');
+  /* 覆盖率：逐句看有没有读出东西。读不出的句子越多，说明这段文字里
+     有识别器没有建模的机制（缠绕/弹药/横置/次数+2 这类），A 只是冰山一角，
+     不能按实算——tsEstimate 会据此决定要不要兜底。 */
+  if(!M.cov) M.cov={hit:0,tot:0};
+  const tally=cl=>{ const n0=evid.length; const v=tsClauseA(cl,M,evid); M.cov.tot++; if(evid.slice(n0).some(e=>TS_QUANT.has(e.k))) M.cov.hit++; return v; };
+  /* ① ② ③ 常跟在「你可以选择 1 项：」后面（同一句），先按标记切出来再分组 */
+  const clauses=[];
+  raw.split(/[。；;\n]+/).forEach(seg=>{
+    seg.split(/(?=[①②③④⑤⑥⑦⑧])/).forEach(p=>{ const s=p.trim(); if(s) clauses.push(s); });
+  });
+  const branch={}; const plain=[];
+  clauses.forEach(cl=>{
+    const m=cl.match(/^[（(]?\s*([①②③④⑤⑥⑦⑧])/);
+    if(m){ (branch[m[1]]=branch[m[1]]||[]).push(cl); } else plain.push(cl);
+  });
+  let A=0; plain.forEach(cl=>{ A+=tally(cl); });
+  const keys=Object.keys(branch);
+  if(keys.length>=2){
+    /* 先用空计数算各支价值，选出最强的一支后才把它计入 M——
+       互斥分支里只有一支真的生效，全计入会让 d2~d9 这些派生轴虚高。 */
+    const vals=keys.map(k=>branch[k].reduce((s,cl)=>s+tsClauseA(cl,tsZeroM(),[]),0));
+    const mx=Math.max(...vals), im=vals.indexOf(mx);
+    A += mx + 0.12*(vals.reduce((x,y)=>x+y,0)-mx);
+    branch[keys[im]].forEach(cl=>{ tally(cl); });
+  } else if(keys.length===1){
+    A += branch[keys[0]].reduce((s,cl)=>s+tally(cl),0);
+  }
+  return A;
+}
+function tsEstimate(text){
+  const t=tsNorm(text);
+  const skills=tsSplitSkills(t);
+  const M=tsZeroM(); const evid=[];
+  let best=0, sum=0;
+  for(const sk of skills){
+    const aw=Math.max(0, tsSkillA(sk.desc, M, evid));
+    const w=/限定技|觉醒技/.test(sk.cat||'')?0.35:1.0;   /* 每局一次 → 摊到每轮很低 */
+    const a2=aw*w;
+    sum+=a2; if(a2>best) best=a2;
+  }
+  /* 多技能不叠加：取最强技能 + 其余 12%。原 25%→18% 都还在把「三个中等技能」堆到上限。
+     上限 = 池内实际天花板：全池专家 D1 最高 7.0（8 张），没有 8 分卡。
+     早先写 2.8→D1 8.0，等于给了一个池内不存在的档位，凡叠加略多就撞顶高估 2～3 分。 */
+  let A=Math.min(best + 0.12*Math.max(0, sum-best), 2.25);
+  /* 下限兜底：只在「这段文字读不干净」时启用——
+     ① 一条收益机制都没读出，或 ② 超过四成的句子读不出东西（有识别器没建模的机制，
+     如缠绕/弹药/横置/次数+2）。这时 A 只是冰山一角，按实算会把强卡压到 2.8。
+     反过来，每句都读出了机制（覆盖率 ≥60%）就按实算，哪怕值很小：
+     标准包 35 条技能实测，原来 34 条撞在同一个 5.0 分，用户一眼看出「像固定保底」。 */
+  const hasQuant=evid.some(e=>TS_QUANT.has(e.k));
+  const cov=(M.cov&&M.cov.tot)?M.cov.hit/M.cov.tot:0;
+  let floored=false;
+  if(skills.some(s=>String(s.desc||'').trim().length>0) && A<1.5 && (!hasQuant || cov<0.6)){ A=1.5; floored=true; }
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  const rd1=(v)=>Math.round(v*10)/10;
+  const d1=clamp(tsAtoD1(A),0,10);
+  const aoeAll=/所有|全体|每名|任意名|所有角色|全体角色|所有敌方/.test(t);
+  const multiAll=/依次|分别|各造成|重复/.test(t);
+  const d2=clamp(4 + M.armor*0.45 + M.heal*0.5 + (M.immune?1.5:0) - M.selfDmg*0.5, 0, 10);
+  const d3=clamp(3.5 + M.maxHit*0.55 + (aoeAll?1.2:0) + (multiAll?0.8:0), 0, 10);
+  const d4=clamp(2.5 + M.ctrl*1.6, 0, 10);
+  const d5=clamp(6 - M.cond*0.4 - (M.consume?0.5:0), 0, 10);
+  const d6=clamp(4 + M.draw*0.7, 0, 10);
+  /* 辅助基线取池内中位 1.5（108 张的 D7 中位 1.5、p75 只有 2.5）。
+     早先给 4，会让一句纯伤害技能的雷达出现「辅助 67%」——比三分之二的卡还会帮队友，
+     而这只是默认值，不是从文字里读出来的。 */
+  const d7=clamp(1.5 + M.support*1.5, 0, 10);
+  const d8=clamp(6 - M.rand*1.8 - M.cond*0.5 - M.consume*0.4 + ((M.dmg+M.draw+M.ctrl+M.armor+M.heal)===0?0.5:0), 0, 10);
+  /* 单打/配合：不依赖别的角色或特定牌 = 自己能打，单打分给到 6.5。
+     早先两支都默认 5.5，而 T1 门槛要求「单打 ≥6 或 配合 ≥6」，等于靠文本估的卡
+     永远进不了 T1——门槛没过，分数再高也被压到 2 档。 */
+  const d9a=clamp(6.5 - (M.rand?1.0:0) - (M.combo?1.5:0), 0, 10);
+  const d9b=clamp(4.0 + (M.support?1.0:0) + (M.combo?1.2:0), 0, 10);
+  const d10=(M.vague>=4||M.cond>=6)?'高':((M.vague>=2||M.cond>=3)?'中':'低');
+  const d11=(M.trig>=2)?'高':(M.trig>=1?'中':'低');
+  /* 弃牌/消耗的代价已经在 A 里从收益扣过一次，这里不再重复扣（同一件事只在一处）。
+     偏科修正只反映「看条件才成立」这一项。 */
+  const delta=rd1(clamp(-(M.cond*0.1), -1.2, 1.2));
+  const dep=M.combo?'高':(M.support?'中':'低');
+  return {a:rd1(A), d1:rd1(d1), d2:rd1(d2), d3:rd1(d3), d4:rd1(d4), d5:rd1(d5), d6:rd1(d6), d7:rd1(d7), d8:rd1(d8), d9a:rd1(d9a), d9b:rd1(d9b), d10:d10, d11:d11, delta:delta, dep:dep, up:(M.cond>=3?2:1), mas:(M.cond>=3?3:1), r:((M.vague>=3||M.cond>=5)?'中':'低'), evid:evid, m:M, aoe:aoeAll, multi:multiAll, skills:skills.length, cov:cov, floored:floored};
+}
+function tsEvidHTML(e){
+  const LAB={dmg:'伤害',selfDmg:'自身代价',draw:'摸牌',heal:'回复',armor:'护甲',mark:'标记',disc:'拆牌',consume:'消耗',ctrl:'控制',support:'帮队友',cond:'看条件',rand:'随机',vague:'含糊表述',trig:'触发时机',immune:'免伤',combo:'吃配合',convert:'牌转化',gain:'获得牌',skip:'跳过阶段',judge:'判定',sem:'特殊机制'};
+  const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const out=[];
+  out.push('<div><b>推定</b>：按文字读出的一轮收益 <b>'+e.a+'</b>（0＝几乎不产出，2.3＝榜单天花板）→ <b>收益期望 '+e.d1+'</b> /10；偏科修正 '+(e.delta>0?'+':'')+e.delta+'</div>');
+  out.push('<div class="evline" style="opacity:.8">其他项：防护 '+e.d2+' · 先手压制 '+e.d3+' · 控制拆解 '+e.d4+' · 启动速度 '+e.d5
+    +' · 续航换牌 '+e.d6+' · 辅助团队 '+e.d7+' · 方差下限 '+e.d8+' · 单打 '+e.d9a+' / 配合 '+e.d9b+'</div>');
+  /* 顶到估分上限时说清楚为什么：不然「两句话就 T0」会让人以为工具坏了 */
+  if(e.a>=2.24) out.push('<div class="evline" style="color:#e8a33d">这段文字里堆的效果已经<b>顶到估分上限</b>（榜单里最强的一档）。如果它实际有代价（每回合只能用一次／要先弃牌／要攒标记），把「收益期望」往下调。</div>');
+  out.push('<div class="evline" style="opacity:.8">分数只是把它换算成 0–10 的位置，不是评价；嫌不对就展开「手动微调」自己改。</div>');
+  /* 覆盖率：哪几句没读出东西。这是「这个分可不可信」的唯一直接依据——
+     不写出来，用户只会看到「一堆卡都是 5.0」，以为工具坏了。 */
+  const cvv=e.m&&e.m.cov?e.m.cov:null;
+  if(cvv && cvv.tot){
+    const miss=cvv.tot-cvv.hit;
+    if(miss>0) out.push('<div class="evline" style="color:#e8a33d">这段文字有 <b>'+miss+'/'+cvv.tot+'</b> 句<b>没读出可量化的效果</b>（多半是自定义标记、特殊时点、场地类机制）。'
+      +(miss/cvv.tot>=0.4?'超过四成，分数已按基准值补齐——基本只能当「中等」看。':'其余句子已按字面计价，漏读的几句会让分数偏低。')+'</div>');
+  }
+  if(e.evid.length){
+    out.push('<div class="evline">从文字里认出来的东西：'+e.evid.map(x=>'<span class="chip">'+(LAB[x.k]||x.k)+(x.v?' +'+x.v:'')+'</span>').join('')+'</div>');
+    out.push('<div class="evline">对应的原句：'+e.evid.map(x=>'「'+esc(x.cl)+'」→'+(LAB[x.k]||x.k)+(x.v?'+'+x.v:'')).join('；')+'</div>');
+  } else if(!(cvv && cvv.tot && (cvv.tot-cvv.hit)>0)){
+    /* 有覆盖率提示时不再重复同一句——「一句都没读出来」已经由上面那条讲清楚了 */
+    out.push('<div class="evline">这段文字里没认出明确的效果（伤害／摸牌／护甲／控场…），只能按「中等强度」给个基准值——大概率不准，请手动改。</div>');
+  }
+  out.push('<div class="evline" style="opacity:.85">⚠ 只作量级参考：光看文字读不出精确强度（对池里已评级的 108 张回测，平均差 1.1 分、88% 落在 2 分内）。它认不出「这技能到底吃不吃配合／要不要铺垫」，这类差异请手动改。</div>');
+  return out.join('');
+}
+/* 最近一次文本估分（只用于雷达的「回复轴」推定与机制回执；网格手改不动它）。
+   同时记住那段文本：用户在文本框里改了内容但没点「估分并跑分」时，不能拿旧机制去画新卡。 */
+let TS_LAST_E=null, TS_LAST_TXT='';
+function tsClearText(){
+  const t=document.getElementById('tsText'); if(t) t.value='';
+  const e=document.getElementById('tsEvid'); if(e){ e.hidden=true; e.innerHTML=''; }
+  TS_LAST_E=null; TS_LAST_TXT='';
+}
+function runTestFromText(){
+  const el=document.getElementById('tsText');
+  const txt=el?String(el.value||'').trim():'';
+  const ev=document.getElementById('tsEvid');
+  if(!txt){
+    if(ev){ ev.hidden=false; ev.innerHTML='<b>先把技能文本粘进来</b>（一行一条也行）。'; }
+    return;
+  }
+  const e=tsEstimate(txt);
+  TS_LAST_E=e; TS_LAST_TXT=txt;
+  TS_D_CFG.forEach(c=>{
+    const inp=document.getElementById('ts_'+c.k); if(!inp) return;
+    inp.value=(c.type==='lvl')?(e[c.k]||'低'):String(e[c.k]);
+  });
+  document.getElementById('tsDelta').value=String(e.delta);
+  TS_PRE_ON.clear(); tsBuildPresets();
+  document.getElementById('tsR').value=e.r;
+  document.getElementById('tsDep').value=e.dep;
+  document.getElementById('tsUp').value=String(e.up);
+  document.getElementById('tsMas').value=String(e.mas);
+  document.getElementById('tsA').value='';
+  if(ev){ ev.hidden=false; ev.innerHTML=tsEvidHTML(e); }
+  runTestScore();
+}
+function tsBuildGrid(){
+  const g=document.getElementById('tsDgrid'); if(!g) return;
+  const lvl=(id)=>'<select id="'+id+'"><option>低</option><option>中</option><option>高</option></select>';
+  const name=(c)=>'<span class="ts-dname">'+c.label+'</span>'+(c.rec?'<i class="ts-tag">只记录</i>':'')+'<small>'+c.sub+'</small>';
+  g.innerHTML = TS_D_CFG.map(c=>{
+    if(c.type==='lvl') return '<div class="ts-dcell"><label>'+name(c)+'</label>'+lvl('ts_'+c.k)+'</div>';
+    return '<div class="ts-dcell'+(c.k==='d9a'||c.k==='d9b'?' pair':'')+'"><label>'+name(c)+'</label><input id="ts_'+c.k+'" type="number" step="0.5" min="0" max="10" value="5"></div>';
+  }).join('');
+}
+function openTestScore(){ const m=document.getElementById('testScoreModal'); if(m){ m.hidden=false; document.body.style.overflow='hidden'; } }
+function closeTestScore(){ const m=document.getElementById('testScoreModal'); if(m){ m.hidden=true; document.body.style.overflow=''; } }
+function tsReset(){
+  TS_D_CFG.forEach(c=>{ const el=document.getElementById('ts_'+c.k); if(el) el.value = (c.type==='lvl')?'低':'5'; });
+  document.getElementById('tsDelta').value='0';
+  TS_PRE_ON.clear(); tsBuildPresets();
+  document.getElementById('tsA').value='';
+  document.getElementById('tsR').value='低';
+  document.getElementById('tsDep').value='低';
+  document.getElementById('tsUp').value='0';
+  document.getElementById('tsMas').value='0';
+  document.getElementById('tsResult').innerHTML='';
+  const t=document.getElementById('tsText'); if(t) t.value='';
+  const ev=document.getElementById('tsEvid'); if(ev){ ev.hidden=true; ev.innerHTML=''; }
+  TS_LAST_E=null; TS_LAST_TXT='';
+}
+/* 这个分数在池里算好还是差——光看「5.8/10」看不出来，因为全池实际只用到 1.8~7.5 这一段。
+   名次每次渲染现算（不写死张数），池子增减自动跟着变。 */
+let __TS_POOL=null;
+function tsPoolScores(mode){
+  if(!__TS_POOL) __TS_POOL={};
+  if(!__TS_POOL[mode]){
+    const a=[];
+    (typeof DATA!=='undefined'&&DATA?DATA:[]).forEach(r=>{
+      const m=r&&r.mc&&r.mc.modes&&r.mc.modes[mode];
+      const v=m?parseFloat(m.score):NaN;
+      if(isFinite(v)) a.push(v);
+    });
+    a.sort((x,y)=>x-y); __TS_POOL[mode]=a;
+  }
+  return __TS_POOL[mode];
+}
+function tsRankNote(mode, score){
+  const a=tsPoolScores(mode); if(!a.length) return '';
+  const n=a.length, better=a.filter(v=>v>score).length, eq=a.filter(v=>v===score).length;
+  if(better===0) return '池内 '+n+' 张里'+(eq>1?'并列最强':'最强');
+  if(better===n) return '池内 '+n+' 张里最弱';
+  const pct=Math.min(99, Math.round(a.filter(v=>v<score).length/n*100));
+  return '池内 '+n+' 张里第 '+(better+1)+' 名（超过 '+pct+'%）';
+}
+function runTestScore(){
+  const d={};
+  TS_D_CFG.forEach(c=>{ const el=document.getElementById('ts_'+c.k); d[c.k] = (c.type==='lvl') ? el.value : (parseFloat(el.value)||0); });
+  d.delta = parseFloat(document.getElementById('tsDelta').value)||0;
+  d.r = document.getElementById('tsR').value;
+  /* d.d10 已在上面 TS_D_CFG 循环里从网格的 ts_d10 读到（同一件事只在一处输入） */
+  d.dep = document.getElementById('tsDep').value;
+  d.up = parseInt(document.getElementById('tsUp').value,10);
+  d.mas = parseInt(document.getElementById('tsMas').value,10);
+  const aRaw = document.getElementById('tsA').value.trim();
+  if(aRaw){ const mm=aRaw.match(/([\d.]+)\s*[~～-]\s*([\d.]+)/); if(mm){ d.aLo=parseFloat(mm[1]); d.aHi=parseFloat(mm[2]); } }
+  /* 这个分是「读不出机制、按基准补齐」来的——要在档位卡上直接写出来。
+     否则用户看到一堆卡都落在 5.0，会以为工具坏了，而真相是这段文字没读懂多少。 */
+  d._floored = !!(TS_LAST_E && TS_LAST_E.floored && Math.abs((+d.d1||0) - TS_LAST_E.d1) < 0.05);
+  const modes = tsScore(d);
+  let html = '<div class="ts-cmp">';
+  ['identity5','2v2'].forEach(mode=>{
+    const m = modes[mode]; if(!m) return;
+    const label = (RULES.modes[mode]&&RULES.modes[mode].label)||mode;
+    const c = tsCard('', m);
+    const r = uncHTML(c);
+    const tcolor = TIER_COLOR['t'+m.tier];
+    const tname = (typeof TIER_NAME!=='undefined' && TIER_NAME['t'+m.tier]) ? TIER_NAME['t'+m.tier] : ('T'+m.tier);
+    html += '<div class="ts-card"><h4><span class="ts-tbadge" style="background:'+tcolor+'">'+tname+'</span>'
+      + '<span class="ts-score">'+m.score+'</span><span class="ts-bnd">/10 · '+label+'</span>'
+      + (m.boundary?' <span class="badge unc">边界卡</span>':'')
+      + (d._floored?' <span class="badge unc" title="这段文字有超过四成句子没读出可量化的效果，分数按池内基准补齐">按基准兜底</span>':'')
+      + '</h4>'
+      + '<div class="unc-note" style="margin:0 0 4px">算式分 '+m.s.toFixed(1)+'　可能落点 '+m.s_min.toFixed(1)+'–'+m.s_max.toFixed(1)+'　'+tsRankNote(mode, m.score)+'</div>'
+      + (r.html||'')
+      + '</div>';
+  });
+  html += '</div>';
+  /* 雷达只画一次：它由 11 项能力值决定，与「身份场 / 2v2」无关——
+     两列各画一遍等于同一幅图说两遍。派生雷达同理。 */
+  const m0 = modes['identity5'] || modes['2v2'];
+  if(m0){
+    const txtEl=document.getElementById('tsText');
+    const txt=txtEl?String(txtEl.value||''):'';
+    const e = (TS_LAST_E && TS_LAST_TXT===txt.trim()) ? TS_LAST_E : (txt.trim()? tsEstimate(txt) : {m:tsZeroM()});
+    const rc = tsRadarCard(d, e, m0);
+    const rv = rc.radar['回复'];
+    html += '<div class="ts-radar">'+abilityPanel(rc).html
+      + '<div class="unc-note">上面两张雷达与正式卡同一套算法（读同一份评分规则）：左图轴长＝这项离它的实用量程多远，'
+      + '右图＝同一项在池里排到第几成；派生雷达按各指标自己的门槛折算，同一半径不代表同一分数。'
+      + '<b>回复</b>这一轴在正式卡里取自详表原文，试算只能按文字判断——'
+      + (rv? '这段文字读到了回血，按 '+rv+' 计' : '这段文字没读到回血，按 0 计（池内 109 张里有 23 张也是 0）')
+      + '；<b>身份适应性</b>没有原文结论，标「未评」，不参与任何结论。</div>'
+      + '</div>';
+  }
+  document.getElementById('tsResult').innerHTML = html;
+}
+tsBuildGrid();
+tsBuildPresets();
+</script>
+</body>
+</html>
