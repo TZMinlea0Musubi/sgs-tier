@@ -611,7 +611,7 @@
 
 <header class="topbar">
   <div class="topbar-inner">
-    <div class="brand">三国杀 <b>DIY 梯度榜</b><span class="ver">v10.1</span><span class="build" title="页面构建时间。数字对不上榜单时，先按 Ctrl+F5 强制刷新">10-24 14:39</span></div>
+    <div class="brand">三国杀 <b>DIY 梯度榜</b><span class="ver">v10.1</span><span class="build" title="页面构建时间。数字对不上榜单时，先按 Ctrl+F5 强制刷新">10-24 14:43</span></div>
     <button id="poolBtn" title="整池统计：档位分布、阵营/设计者对比、能力短板、强弱成因、结论稳定性">池分析</button>
     <button id="algoBtn" data-doc="算法说明.md" title="各区域（档位/雷达/D分）的计算方法">算法说明</button>
     <input id="search" type="search" placeholder="搜索武将 / 技能 / 关键词…（如：封印、觉醒、摸牌）">
@@ -660,7 +660,7 @@
       <p class="side-risk">规则风险·中 <b><span id="stMid">—</span> 张</b>：可定档 <span id="stMidOk">—</span>（T2 <span id="stMidT2">—</span> / T3 <span id="stMidT3">—</span>），分数上限 <span id="stCapMid">—</span>；另 <span id="stMidUnd">—</span> 张未定档。</p>
     </div>
   </aside>
-  <main id="main"></main>
+  <main id="main"><div style="padding:56px 24px;text-align:center;color:#8a8f98;font-size:14px">正在加载卡牌数据…</div></main>
 </div>
 
 <div id="detail" class="detail">
@@ -691,7 +691,7 @@
   <div class="pv-topbar">
     <div class="pv-topbar-inner">
       <button class="backbtn" id="poolBackBtn">← 返回榜单</button>
-      <div class="dv-title">池分析 · 这 110 张作为一个整体</div>
+      <div class="dv-title" id="poolTitle">池分析</div>
       <div class="pv-sub">全部由站点内数据现算，无手估<br>统计口径见《算法说明》⑧</div>
     </div>
   </div>
@@ -2256,6 +2256,9 @@ const sgn = v => (v >= 0 ? '+' : '') + (+v).toFixed(2);
 
 function renderPool(){
   const rated = DATA.filter(c => c.score && c.tier && c.tier !== 'unrated');
+  /* 标题里的张数现算：写死过一次「这 110 张」，扩到 112 后就一直错着 */
+  const pvTitle = $('#poolTitle');
+  if (pvTitle) pvTitle.textContent = '池分析 · 这 ' + DATA.length + ' 张作为一个整体';
   const num = c => parseFloat(c.score);
   const scores = rated.map(num).filter(v => !isNaN(v)).sort((a, b) => a - b);
   const nAll = DATA.length, nRated = rated.length;
