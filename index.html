@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>三国杀DIY梯度榜 · Wiki评级（v10.1）</title>
+<!-- 数据脚本在 body 末尾才出现，先声明让它和页面壳并行下载；不加这句就变成串行，热缓存下反而更慢 -->
+<link rel="preload" href="cards-data.js" as="script">
 <style>
   :root{
     --bg:#14161a; --panel:#1c1f26; --panel2:#21252e; --border:#2a2e37; --border-strong:#3a404c;
@@ -611,7 +613,7 @@
 
 <header class="topbar">
   <div class="topbar-inner">
-    <div class="brand">三国杀 <b>DIY 梯度榜</b><span class="ver">v10.1</span><span class="build" title="页面构建时间。数字对不上榜单时，先按 Ctrl+F5 强制刷新">10-24 14:43</span></div>
+    <div class="brand">三国杀 <b>DIY 梯度榜</b><span class="ver">v10.1</span><span class="build" title="页面构建时间。数字对不上榜单时，先按 Ctrl+F5 强制刷新">10-24 14:50</span></div>
     <button id="poolBtn" title="整池统计：档位分布、阵营/设计者对比、能力短板、强弱成因、结论稳定性">池分析</button>
     <button id="algoBtn" data-doc="算法说明.md" title="各区域（档位/雷达/D分）的计算方法">算法说明</button>
     <input id="search" type="search" placeholder="搜索武将 / 技能 / 关键词…（如：封印、觉醒、摸牌）">
